@@ -169,3 +169,52 @@ class AchHeader(Ach):
                 self.__im_orgn_name +\
                 self.__reference_code)
 
+class AchFileControl(Ach):
+    """
+    Comprises the control record for an ACH file
+    Appears at the end of file
+    """
+
+    __record_type_code = '9'
+
+    def __init__(self, batch_count, block_count, 
+                 entadd_count, entry_hash, debit_amount,
+                 credit_amount):
+        """
+        Initializes all the values we need for our file control record
+        """
+        
+        debit_amount = int((100 * debit_amount))
+        credit_amount = int((100 * credit_amount)) 
+
+        self.__batch_count   = self.validate_numeric_field( batch_count, 6)
+        self.__block_count   = self.validate_numeric_field( block_count, 6)
+        self.__entadd_count  = self.validate_numeric_field( entadd_count, 8)
+        self.__entry_hash    = self.validate_numeric_field( entry_hash, 10)
+        self.__debit_amount  = self.validate_numeric_field( debit_amount , 12)
+        self.__credit_amount = self.validate_numeric_field( credit_amount, 12)
+        self.__reserved      = self.make_space(39)
+
+    def get_row(self):
+
+        return self.__record_type_code +\
+                self.__batch_count +\
+                self.__block_count +\
+                self.__entadd_count +\
+                self.__entry_hash +\
+                self.__debit_amount +\
+                self.__credit_amount +\
+                self.__reserved
+
+    def get_count(self):
+
+         return len(self.__record_type_code +\
+                self.__batch_count +\
+                self.__block_count +\
+                self.__entadd_count +\
+                self.__entry_hash +\
+                self.__debit_amount +\
+                self.__credit_amount +\
+                self.__reserved)
+
+
