@@ -1,6 +1,6 @@
 from datetime import datetime
-
 import re
+
 """
 Collection of class the comprise the row type objects
 in a nacha file
@@ -217,4 +217,127 @@ class AchFileControl(Ach):
                 self.__credit_amount +\
                 self.__reserved)
 
+class AchBatchHeader(Ach):
+
+    __record_type_code = '5'
+
+    std_ent_cls_code_list = [ 'ARC', 'PPD', 'CTX', 'POS', 'WEB',
+                                'BOC', 'TEL', 'MTE', 'SHR', 'CCD',
+                                'CIE', 'POP', 'RCK' ]
+
+    serv_cls_code_list  = ['200', '220', '225']
+
+    def __init__(self,serv_cls_code, company_name, cmpy_dis_data, 
+                    company_id, std_ent_cls_code, entry_desc, desc_date,
+                    eff_ent_date, settlement_date, orig_stat_code,
+                    orig_dfi_id, batch_id):
+        """
+        Initializes and validates the values for our Batch Header
+        rows
+        """
+
+        if str(serv_cls_code) not in serv_cls_code_list:
+            raise AchException("serv_cls_code not valid. Choose 200, 220, 225")
+        self.__serv_cls_code    = self.validate_numeric_field( serv_cls_code, 3 )
+
+        self.__company_name     = self.validate_alpha_numeric_field( company_name, 16 )
+        self.__cmpy_dis_data    = self.validate_alpha_numeric_field( cmpy_dis_data, 20 )
+        self.__company_id       = self.validate_alpha_numeric_field( company_id, 10 )
+
+        if str(std_ent_cls_code) not in std_ent_cls_code_list:
+            raise AchException("std_ent_cls_code not in std_ent_cls_code_list")
+        self.__std_ent_cls_code = self.validate_alpha_numeric_field( std_ent_cls_code, 3 )
+
+        self.__entry_desc       = self.validate_alpha_numeric_field( entry_desc, 10 )
+        self.__desc_date        = self.validate_alpha_numeric_field( desc_date, 6 )
+        self.__eff_ent_date     = self.validate_numeric_field( eff_ent_date, 6 )
+        self.__settlement_date  = self.make_space( 3 )
+        self.__orig_stat_code   = self.validate_numeric_field( orig_stat_code, 1 )
+        self.__orig_dfi_id      = self.validate_numeric_field( orig_dfi_id, 8 )
+        self.__batch_id         = self.validate_numeric_field( batch_id, 7 )
+
+    def get_row(self):
+
+        return self.__serv_cls_code +\
+               self.__company_name +\
+               self.__cmpy_dis_data +\
+               self.__company_id +\
+               self.__std_ent_cls_code +\
+               self.__entry_desc +\
+               self.__desc_date +\
+               self.__eff_ent_date +\
+               self.__settlement_date +\
+               self.__orig_stat_code +\
+               self.__orig_dfi_id +\
+               self.__batch_id
+
+    def get_count(self):
+
+        return len(self.__serv_cls_code +\
+                   self.__company_name +\
+                   self.__cmpy_dis_data +\
+                   self.__company_id +\
+                   self.__std_ent_cls_code +\
+                   self.__entry_desc +\
+                   self.__desc_date +\
+                   self.__eff_ent_date +\
+                   self.__settlement_date +\
+                   self.__orig_stat_code +\
+                   self.__orig_dfi_id +\
+                   self.__batch_id)
+
+class AchBatchControl(Ach):
+
+    __record_type_code = '8'
+
+    def __init__(self, serv_cls_code, entadd_count, entry_hash,
+                    debit_amount, credit_amount, company_id, mesg_auth_code='',
+                    orig_dfi_id, batch_id):
+        """
+        Initializes and validates the batch control record
+        """
+        
+        debit_amount = int((100 * debit_amount))
+        credit_amount = int((100 * credit_amount)) 
+
+        self.__serv_cls_code    = self.validate_numeric_field( serv_cls_code, 3 )
+        self.__entadd_count     = self.validate_numeric_field( entadd_count, 6 )
+        self.__entry_hash       = self.validate_numeric_field( entry_hash, 10 )
+        self.__debit_amount     = self.validate_numeric_field( debit_amount, 12 )
+        self.__credit_amount    = self.validate_numeric_field( credit_amount, 12 )
+        self.__company_id       = self.validate_alpha_numeric_field( company_id, 10 )
+
+        # Field usually left blank, but lets see if it's not
+        if mesg_auth_code == '':
+            self.__mesg_auth_code = self.make_space(19)
+        else:
+            self.__mesg_auth_code = self.validate_alpha_numeric_field( mesg_auth_code, 19)
+        
+        self.__orig_dfi_id      = self.validate_numeric_field( orig_dfi_id, 8 )
+        self.__batch_id         = self.validate_numeric_field( batch_id, 7 )
+
+
+    def get_row(self):
+
+        return self.__serv_cls_code +\
+               self.__entadd_count +\
+               self.__entry_hash +\
+               self.__debit_amount +\
+               self.__credit_amount +\
+               self.__company_id +\
+               self.__mesg_auth_code +\
+               self.__orig_dfi_id +\
+               self.__batch_id 
+
+    def get_count(self):
+
+        return len(self.__serv_cls_code +\
+                   self.__entadd_count +\
+                   self.__entry_hash +\
+                   self.__debit_amount +\
+                   self.__credit_amount +\
+                   self.__company_id +\
+                   self.__mesg_auth_code +\
+                   self.__orig_dfi_id +\
+                   self.__batch_id)
 
