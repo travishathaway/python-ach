@@ -101,6 +101,15 @@ class Ach(object):
 
         return field
 
+    def validate_binary_field(self, field ):
+        """
+        Validates binary string field (either '1' or '0')
+        """
+
+        if field not in ['1','0']:
+            raise AchException("filed not '1' or '0'")
+        return field
+
 class AchHeader(Ach):
     """
     Creates our File Header record of the nacha file
@@ -348,6 +357,42 @@ class AchEntryDetail(Ach):
 
     __record_type_code = '6'
 
+    numeric_fields = ['transaction_code', 'recv_dfi_id', 'check_digit',
+                        'amount', 'num_add_recs', 'card_exp_date' ,'doc_ref_num',
+                        'ind_card_acct_num', 'card_trans_type_code', 
+                        'card_tr_typ_code_shr', 'trace_num']
+
+    alpha_numeric_fileds = [ 'dfi_acnt_num', 'chk_serial_num', 'ind_name',
+                                'disc_data', 'id_number', 'recv_cmpy_name',
+                                'chk_serial_num','terminal_city', 'terminal_state',
+                                'card_tr_typ_code_pos', 'pmt_type_code', 'pmt_type_code']
+
+    field_lengths = {
+        'transaction_code'      : 2,
+        'recv_dfi_id'           : 8,
+        'check_digit'           : 1,
+        'dfi_acnt_num'          : 17,
+        'amount'                : 10,
+        'chk_serial_num'        : 15, #ARC, BOC
+        'chk_serial_num'        : 9, #POP
+        'ind_name'              : 22, #ARC, BOC, CCD, PPD, TEL, POP, POS, WEB
+        'ind_name'              : 15, #CIE, MTE, 
+        'disc_data'             : 2,
+        'id_number'             : 15,
+        'ind_id'                : 22,
+        'num_add_recs'          : 4,
+        'recv_cmpy_name'        : 16,
+        'reserved'              : 2,
+        'terminal_city'         : 4,
+        'terminal_state'        : 2,
+        'card_tr_typ_code_pos'  : 2,
+        'card_tr_typ_code_shr'  : 2,
+        'card_exp_date'         : 4,
+        'doc_ref_num'           : 11,
+        'ind_card_acct_num'     : 22,
+        'pmt_type_code'         : 2,
+    }
+
     def __init__(self, transaction_code, recv_dfi_id, check_digit,
                     dfi_acnt_num, amount, chk_serial_num, ind_name,
                     disc_data, add_rec_ind, trace_num, std_ent_cls_code):
@@ -400,13 +445,13 @@ class AchEntryDetail(Ach):
         elif std_ent_cls_code == 'POS':
             self.__id_number            = self.validate_alpha_numeric_field( id_number, 15 )
             self.__ind_name             = self.validate_alpha_numeric_field( ind_name, 22 )
-            self.__card_trans_type_code = self.validate_alpha_numeric_field( card_trans_type_code, 2)
+            self.__card_tr_typ_code_pos = self.validate_alpha_numeric_field( card_tr_typ_code_pos, 2)
 
         elif std_ent_cls_code == 'SHR':
             self.__card_exp_date        = self.validate_numeric_field( card_exp_date, 4 )
             self.__doc_ref_num          = self.validate_numeric_field( doc_ref_num, 11 )
             self.__ind_card_acct_num    = self.validate_numeric_field( ind_card_acct_num, 22) 
-            self.__card_trans_type_code = self.validate_numeric_field( card_trans_type_code, 2)
+            self.__card_tr_typ_code_shr = self.validate_numeric_field( card_tr_typ_code_shr, 2)
 
         elif std_ent_cls_code == 'RCK':
             "RCK is just like ARC and BOC"
@@ -422,8 +467,14 @@ class AchEntryDetail(Ach):
 
         if str(add_rec_ind) not in ['1', '0']:
             raise AchException("add_rec_ind needs to be 1 or 0")
-        self.__add_rec_ind      = self.validate_alpha_numeric_field( add_rec_ind, 1 )
+        self.__add_rec_ind      = self.validate_binary_field( add_rec_ind )
         self.__trace_num        = self.validate_numeric_field( trace_num, 15 )
+
+    def __setattr__(self, name, value):
+
+        if name in self.numeric_fields:
+            value = self.validate_numeric_field( value, self.field_lengths[name] )
+            object.__setattr__(self,name,value)
 
 class AchAddendaRecord(Ach):
 
@@ -438,4 +489,4 @@ class AchAddendaRecord(Ach):
         Initializes and validates values in entry addenda rows 
         """
 
-        return
+        
