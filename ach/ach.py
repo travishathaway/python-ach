@@ -300,8 +300,8 @@ class AchBatchControl(Ach):
     __record_type_code = '8'
 
     def __init__(self, serv_cls_code, entadd_count, entry_hash,
-                    debit_amount, credit_amount, company_id, mesg_auth_code='',
-                    orig_dfi_id, batch_id):
+                    debit_amount, credit_amount, company_id, 
+                    orig_dfi_id, batch_id, mesg_auth_code=''):
         """
         Initializes and validates the batch control record
         """
@@ -357,14 +357,18 @@ class AchEntryDetail(Ach):
 
     __record_type_code = '6'
 
+    std_ent_cls_code_list = [ 'ARC', 'PPD', 'CTX', 'POS', 'WEB',
+                                'BOC', 'TEL', 'MTE', 'SHR', 'CCD',
+                                'CIE', 'POP', 'RCK' ]
+
+ 
     numeric_fields = ['transaction_code', 'recv_dfi_id', 'check_digit',
                         'amount', 'num_add_recs', 'card_exp_date' ,'doc_ref_num',
-                        'ind_card_acct_num', 'card_trans_type_code', 
-                        'card_tr_typ_code_shr', 'trace_num']
+                        'ind_card_acct_num', 'card_tr_typ_code_shr', 'trace_num']
 
     alpha_numeric_fileds = [ 'dfi_acnt_num', 'chk_serial_num', 'ind_name',
                                 'disc_data', 'id_number', 'recv_cmpy_name',
-                                'chk_serial_num','terminal_city', 'terminal_state',
+                                'terminal_city', 'terminal_state',
                                 'card_tr_typ_code_pos', 'pmt_type_code', 'pmt_type_code']
 
     field_lengths = {
@@ -373,10 +377,10 @@ class AchEntryDetail(Ach):
         'check_digit'           : 1,
         'dfi_acnt_num'          : 17,
         'amount'                : 10,
-        'chk_serial_num'        : 15, #ARC, BOC
-        'chk_serial_num'        : 9, #POP
-        'ind_name'              : 22, #ARC, BOC, CCD, PPD, TEL, POP, POS, WEB
-        'ind_name'              : 15, #CIE, MTE, 
+        'chk_serial_num'        : [9, #POP
+                                    15,], #ARC, BOC
+        'ind_name'              : [15, #CIE, MTE
+                                    22,], #ARC, BOC, CCD, PPD, TEL, POP, POS, WEB
         'disc_data'             : 2,
         'id_number'             : 15,
         'ind_id'                : 22,
@@ -393,90 +397,82 @@ class AchEntryDetail(Ach):
         'pmt_type_code'         : 2,
     }
 
-    def __init__(self, transaction_code, recv_dfi_id, check_digit,
-                    dfi_acnt_num, amount, chk_serial_num, ind_name,
-                    disc_data, add_rec_ind, trace_num, std_ent_cls_code):
+    def __init__(self, std_ent_cls_code, transaction_code='',recv_dfi_id='', check_digit='',
+                    amount='', num_add_recs='', card_exp_date='' ,doc_ref_num='',
+                    ind_card_acct_num='', card_tr_typ_code_shr='', card_tr_typ_code_pos='',
+                    trace_num='', dfi_acnt_num='', ind_name='', disc_data='', id_number='', 
+                    recv_cmpy_name='', chk_serial_num='', terminal_city='', terminal_state='', 
+                    pmt_type_code=''):
         """
         Initialize and validate the values in Entry Detail record
         """
+        self.std_ent_cls_code = std_ent_cls_code
 
-        amount = int((100 * amount))
-
-        self.__transaction_code = self.validate_numeric_field( transaction_code, 2 )
-        self.__recv_dfi_id      = self.validate_numeric_field( recv_dfi_id, 8 )
-        self.__check_digit      = self.validate_numeric_field( check_digit, 1 )
-        self.__dfi_acnt_num     = self.validate_alpha_numeric_field( dfi_acnt_num, 17 )
-        self.__amount           = self.validate_numeric_field( amount, 10 )
-
-        if std_ent_cls_code in ['ARC', 'BOC']:
-            self.__chk_serial_num   = self.validate_alpha_numeric_field( chk_serial_num, 15 )
-            self.__ind_name         = self.validate_alpha_numeric_field( ind_name, 22 )
-            self.__disc_data        = self.validate_alpha_numeric_field( disc_data, 2)
-
-        elif std_ent_cls_code in ['CCD', 'PPD', 'TEL']:
-            self.__id_number        = self.validate_alpha_numeric_field( id_number, 15 )
-            self.__ind_name         = self.validate_alpha_numeric_field( ind_name, 22 )
-            self.__disc_data        = self.validate_alpha_numeric_field( disc_data, 2)
-
-        elif std_ent_cls_code == 'CIE':
-            self.__ind_name = self.validate_alpha_numeric_field( ind_name, 15 )
-            self.__ind_id   = self.validate_alpha_numeric_field( ind_id, 22 )
-            self.__disc_data= self.validate_alpha_numeric_field( disc_data, 2 )
-
-        elif std_ent_cls_code == 'CTX':
-            self.__id_number        = self.validate_alpha_numeric_field( id_number, 15 )
-            self.__num_add_recs     = self.validate_numeric_field( num_add_recs, 4 )
-            self.__recv_cmpy_name   = self.validate_alpha_numeric_field( recv_cmpy_name, 16 )
-            self.__reserved         = self.make_space(2)
-            self.__disc_data        = self.validate_alpha_numeric_field( disc_data, 2 )
-
-        elif std_ent_cls_code == 'MTE':
-            self.__ind_name = self.validate_alpha_numeric_field( ind_name, 15 )
-            self.__ind_id   = self.validate_alpha_numeric_field( ind_id, 22 )
-            self.__disc_data= self.validate_alpha_numeric_field( disc_data, 2 )
-
-        elif std_ent_cls_code == 'POP':
-            self.__chk_serial_num   = self.validate_alpha_numeric_field( chk_serial_num, 9 )
-            self.__terminal_city    = self.validate_alpha_numeric_field( terminal_city, 4 )
-            self.__terminal_state   = self.validate_alpha_numeric_field( terminal_state, 2 )
-            self.__ind_name         = self.validate_alpha_numeric_field( ind_name, 22 )
-            self.__disc_data        = self.validate_alpha_numeric_field( disc_data, 2)
-
-        elif std_ent_cls_code == 'POS':
-            self.__id_number            = self.validate_alpha_numeric_field( id_number, 15 )
-            self.__ind_name             = self.validate_alpha_numeric_field( ind_name, 22 )
-            self.__card_tr_typ_code_pos = self.validate_alpha_numeric_field( card_tr_typ_code_pos, 2)
-
-        elif std_ent_cls_code == 'SHR':
-            self.__card_exp_date        = self.validate_numeric_field( card_exp_date, 4 )
-            self.__doc_ref_num          = self.validate_numeric_field( doc_ref_num, 11 )
-            self.__ind_card_acct_num    = self.validate_numeric_field( ind_card_acct_num, 22) 
-            self.__card_tr_typ_code_shr = self.validate_numeric_field( card_tr_typ_code_shr, 2)
-
-        elif std_ent_cls_code == 'RCK':
-            "RCK is just like ARC and BOC"
-            pass
-
-        elif std_ent_cls_code == 'WEB':
-            self.__id_number    = self.validate_alpha_numeric_field( id_number, 15 )
-            self.__ind_name     = self.validate_alpha_numeric_field( ind_name, 22 )
-            self.__pmt_type_code= self.validate_alpha_numeric_field( pmt_type_code, 2)
-
+        if transaction_code != '':
+            self.transaction_code = transaction_code
         else:
-            raise AchException("std_ent_cls_code not valid")
+            self.transaction_code = self.make_zero(2)
+        if recv_dfi_id != '':
+            self.recv_dfi_id = recv_dfi_id
+        else:
+            self.recv_dfi_id = self.make_zero(8)
+        if check_digit != '':
+            self.check_digit = check_digit
+        else:
+            self.check_digit = self.make_zero(1)
+        if amount != '':
+            self.amount = amount
+        else:
+            self.amount = self.make_zero(10)
+        if num_add_recs != '':
+            self.num_add_recs = num_add_recs
+        else:
+            self.num_add_recs = self.make_zero(4)
+        if card_exp_date != '':
+            self.card_exp_date = card_exp_date
+        else:
+            self.card_exp_date = self.make_zero(4)
+        if doc_ref_num != '':
+            self.doc_ref_num = doc_ref_num
+        else:
+            self.doc_ref_num = self.make_zero(11)
+        if ind_card_acct_num != '':
+            self.ind_card_acct_num = ind_card_acct_num
+        else:
+            self.ind_card_acct_num = self.make_zero(22)
+        if card_tr_typ_code_shr != '':
+            self.card_trans_type_code_shr = card_tr_typ_code_shr
+        else:
+            self.card_tr_typ_code_shr = self.make_zero(2)
 
-        if str(add_rec_ind) not in ['1', '0']:
-            raise AchException("add_rec_ind needs to be 1 or 0")
-        self.__add_rec_ind      = self.validate_binary_field( add_rec_ind )
-        self.__trace_num        = self.validate_numeric_field( trace_num, 15 )
-
+        """self.recv_dfi_id            =
+        self.check_digit            =
+        self.dfi_acnt_num           =
+        self.amount                 =
+        self.chk_serial_num         =
+        self.ind_name               =
+        self.disc_data              = disc_data
+        self.id_number              = id_number
+        self.ind_id                 = ind_id
+        self.num_add_recs           = num_add_recs
+        self.recv_cmpy_name         = recv_cmpy_name
+        self.reserved               = reserved
+        self.terminal_city          = terminal_city
+        self.terminal_state         = terminal_state
+        self.card_tr_typ_code_pos   = card_tr_typ_code_pos
+        self.card_tr_typ_code_shr   = card_tr_typ_code_shr
+        self.card_exp_date          = card_exp_date
+        self.doc_ref_num            = doc_ref_num
+        self.ind_card_acct_num      = ind_card_acct_num
+        self.pmt_type_code          = pmt_type_code
+        """
     def __setattr__(self, name, value):
         """
         Overides the setattr method for the object. We do this so
         that we can validate the field as it gets assigned. 
         """
 
-        if name in self.numeric_fields:
+        if name in self.alpha_numeric_fileds:
             # Special handling for Indvidiual/Company name field
             if name == 'ind_name' and self.std_ent_cls_code in ['CIE', 'MTE']:
                 value = self.validate_alpha_numeric_field( value, self.field_lengths[name][0] )
@@ -496,10 +492,13 @@ class AchEntryDetail(Ach):
         elif name in self.numeric_fields:
             value = self.validate_numeric_field( value, self.field_lengths[name] )
 
+        elif name == 'std_ent_cls_code' and value in self.std_ent_cls_code_list:
+            pass
+ 
         else:
             raise AchException("Field not in numeric_fields or alpha_numeric_fileds")
 
-        object.__setattr__(self, name, value)
+        super(AchEntryDetail, self).__setattr__(name, value)
 
 class AchAddendaRecord(Ach):
 
