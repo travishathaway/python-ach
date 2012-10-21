@@ -471,10 +471,35 @@ class AchEntryDetail(Ach):
         self.__trace_num        = self.validate_numeric_field( trace_num, 15 )
 
     def __setattr__(self, name, value):
+        """
+        Overides the setattr method for the object. We do this so
+        that we can validate the field as it gets assigned. 
+        """
 
         if name in self.numeric_fields:
+            # Special handling for Indvidiual/Company name field
+            if name == 'ind_name' and self.std_ent_cls_code in ['CIE', 'MTE']:
+                value = self.validate_alpha_numeric_field( value, self.field_lengths[name][0] )
+            elif name == 'ind_name':
+                value = self.validate_alpha_numeric_field( value, self.field_lengths[name][1] )
+            
+            # Special handling for Check serial number field
+            elif value == 'chk_serial_num' and self.std_ent_cls_code_list in ['POP']:
+                value = self.validate_alpha_numeric_field( value, self.field_lengths[name][0] )
+            elif value == 'chk_serial_num':
+                value = self.validate_alpha_numeric_field( value, self.field_lengths[name][1] )
+
+            #The rest
+            else:
+                value = self.validate_alpha_numeric_field( value, self.field_lengths[name] )
+
+        elif name in self.numeric_fields:
             value = self.validate_numeric_field( value, self.field_lengths[name] )
-            object.__setattr__(self,name,value)
+
+        else:
+            raise AchException("Field not in numeric_fields or alpha_numeric_fileds")
+
+        object.__setattr__(self, name, value)
 
 class AchAddendaRecord(Ach):
 
