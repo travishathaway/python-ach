@@ -366,7 +366,7 @@ class AchEntryDetail(Ach):
                         'amount', 'num_add_recs', 'card_exp_date' ,'doc_ref_num',
                         'ind_card_acct_num', 'card_tr_typ_code_shr', 'trace_num']
 
-    alpha_numeric_fileds = [ 'dfi_acnt_num', 'chk_serial_num', 'ind_name',
+    alpha_numeric_fields = [ 'dfi_acnt_num', 'chk_serial_num', 'ind_name',
                                 'disc_data', 'id_number', 'recv_cmpy_name',
                                 'terminal_city', 'terminal_state',
                                 'card_tr_typ_code_pos', 'pmt_type_code']
@@ -519,7 +519,7 @@ class AchEntryDetail(Ach):
         that we can validate the field as it gets assigned. 
         """
 
-        if name in self.alpha_numeric_fileds:
+        if name in self.alpha_numeric_fields:
             # Special handling for Indvidiual/Company name field
             if name == 'ind_name' and self.std_ent_cls_code in ['CIE', 'MTE']:
                 value = self.validate_alpha_numeric_field( value, self.field_lengths[name][0] )
@@ -543,7 +543,7 @@ class AchEntryDetail(Ach):
             pass
  
         else:
-            raise TypeError("Field not in numeric_fields or alpha_numeric_fileds")
+            raise TypeError("Field not in numeric_fields or alpha_numeric_fields")
 
         super(AchEntryDetail, self).__setattr__(name, value)
 
