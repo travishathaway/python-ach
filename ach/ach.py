@@ -364,11 +364,12 @@ class AchEntryDetail(Ach):
  
     numeric_fields = ['transaction_code', 'recv_dfi_id', 'check_digit',
                         'amount', 'num_add_recs', 'card_exp_date' ,'doc_ref_num',
-                        'ind_card_acct_num', 'card_tr_typ_code_shr', 'trace_num']
+                        'ind_card_acct_num', 'card_tr_typ_code_shr', 'add_rec_ind',
+                        'trace_num']
 
     alpha_numeric_fields = [ 'dfi_acnt_num', 'chk_serial_num', 'ind_name',
                                 'disc_data', 'id_number', 'recv_cmpy_name',
-                                'terminal_city', 'terminal_state',
+                                'terminal_city', 'terminal_state', 'reserved',
                                 'card_tr_typ_code_pos', 'pmt_type_code']
 
     field_lengths = {
@@ -395,6 +396,7 @@ class AchEntryDetail(Ach):
         'doc_ref_num'           : 11,
         'ind_card_acct_num'     : 22,
         'pmt_type_code'         : 2,
+        'add_rec_ind'           : 1,
         'trace_num'             : 15,
     }
 
@@ -403,11 +405,12 @@ class AchEntryDetail(Ach):
                     ind_card_acct_num='', card_tr_typ_code_shr='', card_tr_typ_code_pos='',
                     trace_num='', dfi_acnt_num='', ind_name='', disc_data='', id_number='', 
                     recv_cmpy_name='', chk_serial_num='', terminal_city='', terminal_state='', 
-                    pmt_type_code=''):
+                    pmt_type_code='', add_rec_ind=''):
         """
         Initialize and validate the values in Entry Detail record
         """
         self.std_ent_cls_code = std_ent_cls_code
+        self.reserved = self.make_space(2)
 
         if transaction_code != '':
             self.transaction_code = transaction_code
@@ -472,9 +475,9 @@ class AchEntryDetail(Ach):
         if ind_name != '':
             self.ind_name = ind_name
         elif self.std_ent_cls_code in ['CIE','MTE']:
-            self.ind_name = self.make_zero(15)
+            self.ind_name = self.make_space(15)
         else:
-            self.ind_name = self.make_zero(22)
+            self.ind_name = self.make_space(22)
 
         if disc_data != '':
             self.disc_data = disc_data
@@ -513,6 +516,11 @@ class AchEntryDetail(Ach):
         else:
             self.pmt_type_code = self.make_space(2)
 
+        if add_rec_ind != '':
+            self.add_rec_ind = add_rec_ind
+        else:
+            self.add_rec_ind = 0 #value is either 1: true, 0: false
+
     def __setattr__(self, name, value):
         """
         Overides the setattr method for the object. We do this so
@@ -546,6 +554,77 @@ class AchEntryDetail(Ach):
             raise TypeError("Field not in numeric_fields or alpha_numeric_fields")
 
         super(AchEntryDetail, self).__setattr__(name, value)
+
+    def get_row(self):
+
+        ret_string = '';
+
+        ret_string = self.record_type_code +\
+                        self.transaction_code +\
+                        self.recv_dfi_id +\
+                        self.check_digit +\
+                        self.dfi_acnt_num +\
+                        self.amount
+
+        if self.std_ent_cls_code in ['ARC','BOC']:
+            ret_string += self.chk_serial_num +\
+                self.ind_name +\
+                self.disc_data
+
+        elif self.std_ent_cls_code in ['CCD','PPD','TEL']:
+            ret_string += self.id_number +\
+                self.ind_name +\
+                disc_data
+
+        elif self.std_ent_cls_code == 'CIE':
+            ret_string += self.ind_name +\
+                self.ind_id +\
+                self.disc_data
+
+        elif self.std_ent_cls_code == 'CTX':
+            ret_string += self.id_number +\
+                self.num_add_recs +\
+                self.recv_cmpy_name +\
+                self.reserved +\
+                self.disc_data
+
+        elif self.std_ent_cls_code == 'MTE':
+            ret_string += self.ind_name +\
+                self.ind_id +\
+                self.disc_data
+
+        elif self.std_ent_cls_code == 'POP':
+            ret_string += self.chk_serial_num +\
+                self.terminal_city +\
+                self.terminal_state +\
+                self.ind_name +\
+                self.disc_data
+
+        elif self.std_ent_cls_code == 'POS':
+            ret_string += self.id_number +\
+                self.ind_name +\
+                self.card_tr_typ_code_pos
+
+        elif self.std_ent_cls_code == 'SHR':
+            ret_string += self.card_exp_date +\
+                self.doc_ref_num +\
+                self.ind_card_acct_num +\
+                self.card_tr_typ_code_shr
+
+        elif self.std_ent_cls_code == 'RCK':
+            ret_string += self.chk_serial_num +\
+                self.ind_name +\
+                self.disc_data
+
+        elif self.std_ent_cls_code == 'WEB':
+            ret_string += self.id_number +\
+                self.ind_name +\
+                self.pmt_type_code
+
+        ret_string += self.add_rec_ind +\
+            self.trace_num
+ 
+        return ret_string       
 
 
 
