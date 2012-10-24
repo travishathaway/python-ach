@@ -628,17 +628,78 @@ class AchEntryDetail(Ach):
 
 
 
-class AchAddendaRecord(Ach):
+class AchAddendaRecord(Ach, dict):
 
     record_type_code = '7'
     addenda_type_code = '05'
 
-    def __init__(self, trans_desc, net_id_code, term_id_code,
-                    trans_serial_code, trans_date, trans_time,
-                    terminal_loc, terminal_city, terminal_state,
-                    trace_num):
+    alpha_numeric_fields = ['trans_desc', 'net_id_code', 'term_id_code',
+                            'trans_serial_code', 'terminal_loc', 'terminal_city', 
+                            'terminal_state', 'ref_info_1', 'ref_info_2', 'pmt_rel_info']
+
+    numeric_fields  = ['trans_date', 'trans_time', 'trace_num']
+
+    field_lengths = {
+        'trans_desc'        : 7,
+        'net_id_code'       : 3,
+        'term_id_code'      : 6,
+        'trans_serial_code' : 6,
+        'terminal_loc'      : 27,
+        'terminal_city'     : 15,
+        'terminal_state'    : 2,
+        'ref_info_1'        : 7,
+        'ref_info_2'        : 3,
+        'pmt_rel_info'      : 80,
+        'trans_date'        : 4,
+        'trans_time'        : 6,
+        'trace_num'         : 15,
+    }
+        
+
+    def __init__(self, trans_desc='', net_id_code='', term_id_code='',
+                    ref_info_1='', ref_info2='', trans_serial_code='', 
+                    trans_date='', trans_time='', terminal_loc='', 
+                    terminal_city='', terminal_state='', trace_num='',
+                    auth_card_exp='',pmt_rel_info=''):
         """
         Initializes and validates values in entry addenda rows 
         """
 
-        return        
+        fields = locals().copy()
+
+        for key in fields:
+
+            if key == 'self': continue
+
+            if fields[key] != '':
+                self[key] = fields[key]
+
+            elif key in self.numeric_fields:
+                self[key] = self.make_zero( self.field_lengths[key] )
+
+            elif key in self.alpha_numeric_fields:
+                self[key] = self.make_space( self.field_lengths[key] )
+
+    def __setattr__(self, name, value):
+
+        if name in self.alpha_numeric_fields:
+            value = self.validate_alpha_numeric_field(value, self.field_lengths[name])
+        elif name in self.numeric_fields:
+            value = self.validate_numeric_field(value, self.field_lengths[name])
+        else:
+            raise TypeError(value+" not in numeric or alpha numeric fields")
+
+        super(AchAddendaRecord, self).__setattr__(name, value)
+
+    def __setitem__(self, index, value):
+        
+        if index in self.alpha_numeric_fields:
+            value = self.validate_alpha_numeric_field(value, self.field_lengths[index])
+        elif index in self.numeric_fields:
+            value = self.validate_numeric_field(value, self.field_lengths[index])
+        else:
+            raise TypeError(value+" not in numeric or alpha numeric fields")
+
+        super(AchAddendaRecord, self).__setitem__(index, value)
+
+
