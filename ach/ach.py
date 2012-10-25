@@ -412,114 +412,25 @@ class AchEntryDetail(Ach):
         self.std_ent_cls_code = std_ent_cls_code
         self.reserved = self.make_space(2)
 
-        if transaction_code != '':
-            self.transaction_code = transaction_code
-        else:
-            self.transaction_code = self.make_zero(2)
+        fields = locals().copy()
 
-        if recv_dfi_id != '':
-            self.recv_dfi_id = recv_dfi_id
-        else:
-            self.recv_dfi_id = self.make_zero(8)
+        for key in fields:
+            if key == 'self': continue
 
-        if check_digit != '':
-            self.check_digit = check_digit
-        else:
-            self.check_digit = self.make_zero(1)
+            if fields[key] != '':
+                self.__setattr__(key, fields[key])
 
-        if amount != '':
-            self.amount = amount
-        else:
-            self.amount = self.make_zero(10)
+            elif key in ['chk_serial_num', 'ind_name']:
+                if self.std_ent_cls_code in ['CIE', 'MTE', 'POP']:
+                    self.__setattr__(key, self.make_space( self.field_lengths[key][0] ) )
+                else:
+                    self.__setattr__(key, self.make_space( self.field_lengths[key][1] ) )
 
-        if num_add_recs != '':
-            self.num_add_recs = num_add_recs
-        else:
-            self.num_add_recs = self.make_zero(4)
+            elif key in self.numeric_fields:
+                self.__setattr__(key, self.make_zero( self.field_lengths[key] ) )
 
-        if card_exp_date != '':
-            self.card_exp_date = card_exp_date
-        else:
-            self.card_exp_date = self.make_zero(4)
-
-        if doc_ref_num != '':
-            self.doc_ref_num = doc_ref_num
-        else:
-            self.doc_ref_num = self.make_zero(11)
-
-        if ind_card_acct_num != '':
-            self.ind_card_acct_num = ind_card_acct_num
-        else:
-            self.ind_card_acct_num = self.make_zero(22)
-
-        if card_tr_typ_code_shr != '':
-            self.card_trans_type_code_shr = card_tr_typ_code_shr
-        else:
-            self.card_tr_typ_code_shr = self.make_zero(2)
-
-        if trace_num != '':
-            self.trace_num = trace_num
-        else:
-            self.trace_num = self.make_zero(15)
-
-        if card_tr_typ_code_pos != '':
-            self.card_tr_typ_code_pos = card_tr_typ_code_pos
-        else:
-            self.card_tr_typ_code_pos = self.make_space(2)
-
-        if dfi_acnt_num != '':
-            self.dfi_acnt_num = dfi_acnt_num
-        else:
-            self.dfi_acnt_num = self.make_zero(17)
-
-        if ind_name != '':
-            self.ind_name = ind_name
-        elif self.std_ent_cls_code in ['CIE','MTE']:
-            self.ind_name = self.make_space(15)
-        else:
-            self.ind_name = self.make_space(22)
-
-        if disc_data != '':
-            self.disc_data = disc_data
-        else:
-            self.disc_data = self.make_zero(2)
-
-        if id_number != '':
-            self.id_number = id_number
-        else:
-            self.id_number = self.make_zero(15)
-
-        if recv_cmpy_name != '':
-            self.recv_cmpy_name = recv_cmpy_name
-        else:
-            self.recv_cmpy_name = self.make_space(16)
-
-        if chk_serial_num != '':
-            self.chk_serial_num = chk_serial_num
-        elif self.std_ent_cls_code == 'POP':
-            self.chk_serial_num = self.make_space(9)
-        else:
-            self.chk_serial_num = self.make_space(15)
-
-        if terminal_city != '':
-            self.terminal_city = terminal_city
-        else:
-            self.terminal_city = self.make_space(4)
-
-        if terminal_state != '':
-            self.terminal_state = terminal_state
-        else:
-            self.terminal_state = self.make_space(2)
-
-        if pmt_type_code != '':
-            self.pmt_type_code = pmt_type_code
-        else:
-            self.pmt_type_code = self.make_space(2)
-
-        if add_rec_ind != '':
-            self.add_rec_ind = add_rec_ind
-        else:
-            self.add_rec_ind = 0 #value is either 1: true, 0: false
+            elif key in self.alpha_numeric_fields:
+                self.__setattr__(key, self.make_space( self.field_lengths[key] ) )
 
     def __setattr__(self, name, value):
         """
@@ -551,7 +462,7 @@ class AchEntryDetail(Ach):
             pass
  
         else:
-            raise TypeError("Field not in numeric_fields or alpha_numeric_fields")
+            raise TypeError(name+" not in numeric_fields or alpha_numeric_fields")
 
         super(AchEntryDetail, self).__setattr__(name, value)
 
@@ -628,16 +539,18 @@ class AchEntryDetail(Ach):
 
 
 
-class AchAddendaRecord(Ach, dict):
+class AchAddendaRecord(Ach):
 
     record_type_code = '7'
     addenda_type_code = '05'
 
     alpha_numeric_fields = ['trans_desc', 'net_id_code', 'term_id_code',
                             'trans_serial_code', 'terminal_loc', 'terminal_city', 
-                            'terminal_state', 'ref_info_1', 'ref_info_2', 'pmt_rel_info']
+                            'terminal_state', 'ref_info_1', 'ref_info_2', 'pmt_rel_info',
+                            'auth_card_exp']
 
-    numeric_fields  = ['trans_date', 'trans_time', 'trace_num']
+    numeric_fields  = ['trans_date', 'trans_time', 'trace_num', 'ent_det_seq_num',
+                        'add_seq_num']
 
     field_lengths = {
         'trans_desc'        : 7,
@@ -653,32 +566,38 @@ class AchAddendaRecord(Ach, dict):
         'trans_date'        : 4,
         'trans_time'        : 6,
         'trace_num'         : 15,
+        'ent_det_seq_num'   : 7,
+        'auth_card_exp'     : 6,
+        'add_seq_num'       : 4,
     }
         
 
-    def __init__(self, trans_desc='', net_id_code='', term_id_code='',
-                    ref_info_1='', ref_info2='', trans_serial_code='', 
+    def __init__(self, std_ent_cls_code, trans_desc='', net_id_code='', term_id_code='',
+                    ref_info_1='', ref_info_2='', trans_serial_code='', 
                     trans_date='', trans_time='', terminal_loc='', 
                     terminal_city='', terminal_state='', trace_num='',
-                    auth_card_exp='',pmt_rel_info=''):
+                    auth_card_exp='',add_seq_num='', ent_det_seq_num='',
+                    pmt_rel_info=''):
         """
         Initializes and validates values in entry addenda rows 
         """
 
         fields = locals().copy()
 
+        self.std_ent_cls_code = std_ent_cls_code
+
         for key in fields:
 
             if key == 'self': continue
 
             if fields[key] != '':
-                self[key] = fields[key]
+                self.__setattr__(key, fields[key] )
 
             elif key in self.numeric_fields:
-                self[key] = self.make_zero( self.field_lengths[key] )
+                self.__setattr__(key, self.make_zero( self.field_lengths[key] ) )
 
             elif key in self.alpha_numeric_fields:
-                self[key] = self.make_space( self.field_lengths[key] )
+                self.__setattr__(key, self.make_space( self.field_lengths[key] ) )
 
     def __setattr__(self, name, value):
 
@@ -686,20 +605,48 @@ class AchAddendaRecord(Ach, dict):
             value = self.validate_alpha_numeric_field(value, self.field_lengths[name])
         elif name in self.numeric_fields:
             value = self.validate_numeric_field(value, self.field_lengths[name])
+        elif name == 'std_ent_cls_code':
+            pass
         else:
             raise TypeError(value+" not in numeric or alpha numeric fields")
 
         super(AchAddendaRecord, self).__setattr__(name, value)
 
-    def __setitem__(self, index, value):
-        
-        if index in self.alpha_numeric_fields:
-            value = self.validate_alpha_numeric_field(value, self.field_lengths[index])
-        elif index in self.numeric_fields:
-            value = self.validate_numeric_field(value, self.field_lengths[index])
+    def get_row(self):
+
+        ret_string = ''
+
+        ret_string += self.record_type_code +\
+            self.addenda_type_code
+
+        if self.std_ent_cls_code == 'MTE':
+            ret_string += self.trans_desc +\
+                self.net_id_code +\
+                self.term_id_code +\
+                self.trans_serial_code +\
+                self.trans_date +\
+                self.trans_time +\
+                self.terminal_loc +\
+                self.terminal_city +\
+                self.terminal_state +\
+                self.trace_num
+
+        elif self.std_ent_cls_code in ['POS','SHR']:
+            ret_string += self.ref_info_1 +\
+                self.ref_info_2 +\
+                self.term_id_code +\
+                self.trans_serial_code +\
+                self.trans_date +\
+                self.auth_card_exp +\
+                self.terminal_loc +\
+                self.terminal_city +\
+                self.terminal_state +\
+                self.trace_num
+
         else:
-            raise TypeError(value+" not in numeric or alpha numeric fields")
+            ret_string += self.pmt_rel_info +\
+                self.add_seq_num +\
+                self.ent_det_seq_num
 
-        super(AchAddendaRecord, self).__setitem__(index, value)
-
+        return ret_string
 
