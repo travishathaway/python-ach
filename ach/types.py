@@ -110,7 +110,7 @@ class Ach(object):
             raise AchException("filed not '1' or '0'")
         return field
 
-class AchHeader(Ach):
+class Header(Ach):
     """
     Creates our File Header record of the nacha file
     """
@@ -178,7 +178,7 @@ class AchHeader(Ach):
                 self.__im_orgn_name +\
                 self.__reference_code)
 
-class AchFileControl(Ach):
+class FileControl(Ach):
     """
     Comprises the control record for an ACH file
     Appears at the end of file
@@ -226,7 +226,7 @@ class AchFileControl(Ach):
                 self.__credit_amount +\
                 self.__reserved)
 
-class AchBatchHeader(Ach):
+class BatchHeader(Ach):
 
     __record_type_code = '5'
 
@@ -295,7 +295,7 @@ class AchBatchHeader(Ach):
                    self.__orig_dfi_id +\
                    self.__batch_id)
 
-class AchBatchControl(Ach):
+class BatchControl(Ach):
 
     __record_type_code = '8'
 
@@ -350,7 +350,7 @@ class AchBatchControl(Ach):
                    self.__orig_dfi_id +\
                    self.__batch_id)
 
-class AchEntryDetail(Ach):
+class EntryDetail(Ach):
     """
     Object represents a single Entry Detail record of an ACH file
     """
@@ -539,7 +539,7 @@ class AchEntryDetail(Ach):
 
 
 
-class AchAddendaRecord(Ach):
+class AddendaRecord(Ach):
 
     record_type_code = '7'
     addenda_type_code = '05'
