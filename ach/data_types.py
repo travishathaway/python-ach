@@ -1,5 +1,6 @@
-from datetime import datetime
+import math
 import re
+from datetime import datetime
 
 """
 Collection of class the comprise the row type objects
@@ -115,13 +116,14 @@ class Header(Ach):
     Creates our File Header record of the nacha file
     """
 
-    __record_size = '094'
-    __blk_factor  = '10'
-    __format_code = '1'
+    record_type_code = '1'
+    priority_code    = '01'
+    record_size      = '094'
+    blk_factor       = '10'
+    format_code      = '1'
 
-    def __init__(self, record_type_code, priority_code, immediate_dest,
-                 immediate_org, file_id_mod,im_dest_name, im_orgn_name, 
-                 reference_code):
+    def __init__(self, immediate_dest, immediate_org, file_id_mod,
+                    im_dest_name, im_orgn_name, reference_code):
         """
         Initializes all values needed for 
         our header row
@@ -129,54 +131,40 @@ class Header(Ach):
 
         date = datetime.today()
 
-        self.__record_type_code = self.validate_numeric_field(record_type_code,1)
-        self.__priority_code    = self.validate_numeric_field(priority_code,2)
-        self.__immediate_dest   = immediate_dest # weird field, provided by bank
-        self.__immediate_org    = immediate_org # again, weird field, provided by bank
-        self.__file_crt_date    = date.strftime('%y%m%d')
-        self.__file_crt_time    = date.strftime('%M%S')
-        self.__file_id_mod      = self.validate_upper_num_field(file_id_mod,1)
-        self.__im_dest_name     = self.validate_alpha_numeric_field(im_dest_name,23)
-        self.__im_orgn_name     = self.validate_alpha_numeric_field(im_orgn_name,23)
-        self.__reference_code   = self.validate_alpha_numeric_field(reference_code)
+        self.immediate_dest   = immediate_dest # weird field, provided by bank
+        self.immediate_org    = immediate_org # again, weird field, provided by bank
+        self.file_crt_date    = date.strftime('%y%m%d')
+        self.file_crt_time    = date.strftime('%M%S')
+        self.file_id_mod      = self.validate_upper_num_field(file_id_mod,1)
+        self.im_dest_name     = self.validate_alpha_numeric_field(im_dest_name, 23)
+        self.im_orgn_name     = self.validate_alpha_numeric_field(im_orgn_name, 23)
+        self.reference_code   = self.validate_alpha_numeric_field(reference_code, 8)
 
     def get_row(self):
         """
         returns concatenated string of all parameters in
         nacha file
         """
-        return self.__record_type_code +\
-                self.__priority_code +\
-                self.__immediate_dest +\
-                self.__immediate_org +\
-                self.__file_crt_date +\
-                self.__file_crt_time +\
-                self.__file_id_mod +\
-                self.__record_size +\
-                self.__blk_factor +\
-                self.__format_code +\
-                self.__im_dest_name +\
-                self.__im_orgn_name +\
-                self.__reference_code
+        return self.record_type_code +\
+                self.priority_code +\
+                self.immediate_dest +\
+                self.immediate_org +\
+                self.file_crt_date +\
+                self.file_crt_time +\
+                self.file_id_mod +\
+                self.record_size +\
+                self.blk_factor +\
+                self.format_code +\
+                self.im_dest_name +\
+                self.im_orgn_name +\
+                self.reference_code
 
-    def get_char_count(self):
+    def get_count(self):
         """
         Returns length of all parameters in nach
         file
         """
-        return len(self.__record_type_code +\
-                self.__priority_code +\
-                self.__immediate_dest +\
-                self.__immediate_org +\
-                self.__file_crt_date +\
-                self.__file_crt_time +\
-                self.__file_id_mod +\
-                self.__record_size +\
-                self.__blk_factor +\
-                self.__format_code +\
-                self.__im_dest_name +\
-                self.__im_orgn_name +\
-                self.__reference_code)
+        return len( self.get_row() )
 
 class FileControl(Ach):
     """
@@ -184,7 +172,7 @@ class FileControl(Ach):
     Appears at the end of file
     """
 
-    __record_type_code = '9'
+    record_type_code = '9'
 
     def __init__(self, batch_count, block_count, 
                  entadd_count, entry_hash, debit_amount,
@@ -196,39 +184,31 @@ class FileControl(Ach):
         debit_amount = int((100 * debit_amount))
         credit_amount = int((100 * credit_amount)) 
 
-        self.__batch_count   = self.validate_numeric_field( batch_count, 6)
-        self.__block_count   = self.validate_numeric_field( block_count, 6)
-        self.__entadd_count  = self.validate_numeric_field( entadd_count, 8)
-        self.__entry_hash    = self.validate_numeric_field( entry_hash, 10)
-        self.__debit_amount  = self.validate_numeric_field( debit_amount , 12)
-        self.__credit_amount = self.validate_numeric_field( credit_amount, 12)
-        self.__reserved      = self.make_space(39)
+        self.batch_count   = self.validate_numeric_field( batch_count, 6)
+        self.block_count   = self.validate_numeric_field( block_count, 6)
+        self.entadd_count  = self.validate_numeric_field( entadd_count, 8)
+        self.entry_hash    = self.validate_numeric_field( entry_hash, 10)
+        self.debit_amount  = self.validate_numeric_field( debit_amount , 12)
+        self.credit_amount = self.validate_numeric_field( credit_amount, 12)
+        self.reserved      = self.make_space(39)
 
     def get_row(self):
 
-        return self.__record_type_code +\
-                self.__batch_count +\
-                self.__block_count +\
-                self.__entadd_count +\
-                self.__entry_hash +\
-                self.__debit_amount +\
-                self.__credit_amount +\
-                self.__reserved
+        return self.record_type_code +\
+                self.batch_count +\
+                self.block_count +\
+                self.entadd_count +\
+                self.entry_hash +\
+                self.debit_amount +\
+                self.credit_amount +\
+                self.reserved
 
     def get_count(self):
-
-         return len(self.__record_type_code +\
-                self.__batch_count +\
-                self.__block_count +\
-                self.__entadd_count +\
-                self.__entry_hash +\
-                self.__debit_amount +\
-                self.__credit_amount +\
-                self.__reserved)
+         return len( self.get_row() )
 
 class BatchHeader(Ach):
 
-    __record_type_code = '5'
+    record_type_code = '5'
 
     std_ent_cls_code_list = [ 'ARC', 'PPD', 'CTX', 'POS', 'WEB',
                                 'BOC', 'TEL', 'MTE', 'SHR', 'CCD',
@@ -236,68 +216,91 @@ class BatchHeader(Ach):
 
     serv_cls_code_list  = ['200', '220', '225']
 
-    def __init__(self,serv_cls_code, company_name, cmpy_dis_data, 
-                    company_id, std_ent_cls_code, entry_desc, desc_date,
-                    eff_ent_date, settlement_date, orig_stat_code,
-                    orig_dfi_id, batch_id):
+    numeric_fields = ['orig_dfi_id','batch_id','eff_ent_date','serv_cls_code']
+
+    alpha_numeric_fields = ['company_name','cmpy_dis_data','company_id',
+                            'std_ent_cls_code','entry_desc','desc_date',
+                            'orig_stat_code','settlement_date']
+
+    field_lengths = {
+        'serv_cls_code'     : 3,
+        'company_name'      : 16,
+        'cmpy_dis_data'     : 20,
+        'company_id'        : 10,
+        'std_ent_cls_code'  : 3,
+        'entry_desc'        : 10,
+        'desc_date'         : 6,
+        'eff_ent_date'      : 6,
+        'settlement_date'   : 3,
+        'orig_stat_code'    : 1,
+        'orig_dfi_id'       : 8,
+        'batch_id'          : 7,
+    }
+
+    def __init__(self,serv_cls_code='220', company_name='', cmpy_dis_data='', 
+                    company_id='', std_ent_cls_code='PPD', entry_desc='', desc_date='',
+                    eff_ent_date='', orig_stat_code='', orig_dfi_id='', batch_id=''):
         """
         Initializes and validates the values for our Batch Header
         rows
+        We use 220 and PPD as the default values for serv_cls_code and std_ent_cls_code
         """
 
-        if str(serv_cls_code) not in serv_cls_code_list:
-            raise AchException("serv_cls_code not valid. Choose 200, 220, 225")
-        self.__serv_cls_code    = self.validate_numeric_field( serv_cls_code, 3 )
+        args = locals().copy()
 
-        self.__company_name     = self.validate_alpha_numeric_field( company_name, 16 )
-        self.__cmpy_dis_data    = self.validate_alpha_numeric_field( cmpy_dis_data, 20 )
-        self.__company_id       = self.validate_alpha_numeric_field( company_id, 10 )
+        self.settlement_date = self.make_space(3)
 
-        if str(std_ent_cls_code) not in std_ent_cls_code_list:
-            raise AchException("std_ent_cls_code not in std_ent_cls_code_list")
-        self.__std_ent_cls_code = self.validate_alpha_numeric_field( std_ent_cls_code, 3 )
+        for key in args:
+            if key == 'self': continue
 
-        self.__entry_desc       = self.validate_alpha_numeric_field( entry_desc, 10 )
-        self.__desc_date        = self.validate_alpha_numeric_field( desc_date, 6 )
-        self.__eff_ent_date     = self.validate_numeric_field( eff_ent_date, 6 )
-        self.__settlement_date  = self.make_space( 3 )
-        self.__orig_stat_code   = self.validate_numeric_field( orig_stat_code, 1 )
-        self.__orig_dfi_id      = self.validate_numeric_field( orig_dfi_id, 8 )
-        self.__batch_id         = self.validate_numeric_field( batch_id, 7 )
+            if args[key] != '':
+                self.__setattr__(key, args[key])
+
+            elif key in self.numeric_fields:
+                self.__setattr__(key, self.make_zero(self.field_lengths[key]) )
+
+            elif key in self.alpha_numeric_fields:
+                self.__setattr__(key, self.make_space(self.field_lengths[key]) )
+
+    def __setattr__(self, name, value):
+
+        if name in self.numeric_fields:
+            if name == 'serv_cls_code' and str(value) not in self.serv_cls_code_list:
+                raise TypeError(value+" not in serv_cls_code_list")
+            value = self.validate_numeric_field(value, self.field_lengths[name])
+
+        elif name in self.alpha_numeric_fields:
+            if name == 'std_ent_cls_code' and str(value) not in self.std_ent_cls_code_list:
+                raise TypeError(value+" not in std_ent_cls_code_list")
+            value = self.validate_alpha_numeric_field(value, self.field_lengths[name])
+
+        else:
+            raise TypeError(name+' not in numeric or alpha numer fields list')
+
+        super(BatchHeader, self).__setattr__(name, value)
 
     def get_row(self):
 
-        return self.__serv_cls_code +\
-               self.__company_name +\
-               self.__cmpy_dis_data +\
-               self.__company_id +\
-               self.__std_ent_cls_code +\
-               self.__entry_desc +\
-               self.__desc_date +\
-               self.__eff_ent_date +\
-               self.__settlement_date +\
-               self.__orig_stat_code +\
-               self.__orig_dfi_id +\
-               self.__batch_id
+        return self.record_type_code +\
+               self.serv_cls_code +\
+               self.company_name +\
+               self.cmpy_dis_data +\
+               self.company_id +\
+               self.std_ent_cls_code +\
+               self.entry_desc +\
+               self.desc_date +\
+               self.eff_ent_date +\
+               self.settlement_date +\
+               self.orig_stat_code +\
+               self.orig_dfi_id +\
+               self.batch_id
 
     def get_count(self):
-
-        return len(self.__serv_cls_code +\
-                   self.__company_name +\
-                   self.__cmpy_dis_data +\
-                   self.__company_id +\
-                   self.__std_ent_cls_code +\
-                   self.__entry_desc +\
-                   self.__desc_date +\
-                   self.__eff_ent_date +\
-                   self.__settlement_date +\
-                   self.__orig_stat_code +\
-                   self.__orig_dfi_id +\
-                   self.__batch_id)
+        return len( self.get_row() )
 
 class BatchControl(Ach):
 
-    __record_type_code = '8'
+    record_type_code = '8'
 
     def __init__(self, serv_cls_code, entadd_count, entry_hash,
                     debit_amount, credit_amount, company_id, 
@@ -309,46 +312,38 @@ class BatchControl(Ach):
         debit_amount = int((100 * debit_amount))
         credit_amount = int((100 * credit_amount)) 
 
-        self.__serv_cls_code    = self.validate_numeric_field( serv_cls_code, 3 )
-        self.__entadd_count     = self.validate_numeric_field( entadd_count, 6 )
-        self.__entry_hash       = self.validate_numeric_field( entry_hash, 10 )
-        self.__debit_amount     = self.validate_numeric_field( debit_amount, 12 )
-        self.__credit_amount    = self.validate_numeric_field( credit_amount, 12 )
-        self.__company_id       = self.validate_alpha_numeric_field( company_id, 10 )
+        self.serv_cls_code    = self.validate_numeric_field( serv_cls_code, 3 )
+        self.entadd_count     = self.validate_numeric_field( entadd_count, 6 )
+        self.entry_hash       = self.validate_numeric_field( entry_hash, 10 )
+        self.debit_amount     = self.validate_numeric_field( debit_amount, 12 )
+        self.credit_amount    = self.validate_numeric_field( credit_amount, 12 )
+        self.company_id       = self.validate_alpha_numeric_field( company_id, 10 )
 
         # Field usually left blank, but lets see if it's not
         if mesg_auth_code == '':
-            self.__mesg_auth_code = self.make_space(19)
+            self.mesg_auth_code = self.make_space(19)
         else:
-            self.__mesg_auth_code = self.validate_alpha_numeric_field( mesg_auth_code, 19)
+            self.mesg_auth_code = self.validate_alpha_numeric_field( mesg_auth_code, 19)
         
-        self.__orig_dfi_id      = self.validate_numeric_field( orig_dfi_id, 8 )
-        self.__batch_id         = self.validate_numeric_field( batch_id, 7 )
+        self.orig_dfi_id      = self.validate_numeric_field( orig_dfi_id, 8 )
+        self.batch_id         = self.validate_numeric_field( batch_id, 7 )
 
 
     def get_row(self):
 
-        return self.__serv_cls_code +\
-               self.__entadd_count +\
-               self.__entry_hash +\
-               self.__debit_amount +\
-               self.__credit_amount +\
-               self.__company_id +\
-               self.__mesg_auth_code +\
-               self.__orig_dfi_id +\
-               self.__batch_id 
+        return self.serv_cls_code +\
+               self.entadd_count +\
+               self.entry_hash +\
+               self.debit_amount +\
+               self.credit_amount +\
+               self.company_id +\
+               self.mesg_auth_code +\
+               self.orig_dfi_id +\
+               self.batch_id 
 
     def get_count(self):
 
-        return len(self.__serv_cls_code +\
-                   self.__entadd_count +\
-                   self.__entry_hash +\
-                   self.__debit_amount +\
-                   self.__credit_amount +\
-                   self.__company_id +\
-                   self.__mesg_auth_code +\
-                   self.__orig_dfi_id +\
-                   self.__batch_id)
+        return len( self.get_row() )
 
 class EntryDetail(Ach):
     """
@@ -535,7 +530,23 @@ class EntryDetail(Ach):
         ret_string += self.add_rec_ind +\
             self.trace_num
  
-        return ret_string       
+        return ret_string
+
+    def get_count(self):
+        return len( self.get_row() )
+
+    def calc_check_digit(self):
+
+        multipliers = [3,7,1,3,7,1,3,7]
+
+        tmp_num = 0
+
+        for num,mult in map(None, list(self.recv_dfi_id), multipliers):
+            tmp_num += int(num) * mult
+
+        nearest_10 = math.ceil(tmp_num/10.0)
+
+        return int( (nearest_10 * 10) - tmp_num) 
 
 
 
@@ -650,3 +661,5 @@ class AddendaRecord(Ach):
 
         return ret_string
 
+    def get_count(self):
+        return len( self.get_row() )
