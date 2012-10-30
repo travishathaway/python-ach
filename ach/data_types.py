@@ -72,7 +72,7 @@ class Ach(object):
             if len(field) < length:
                 field = self.make_zero( length - len(field) ) + field
             elif len(field) > length:
-                raise AchException("field can only be "+length+" digits long")
+                raise AchException("field can only be "+str(length)+" digits long")
         else:
             raise AchException("field needs to be numeric characters only")
 
@@ -89,12 +89,12 @@ class Ach(object):
 
         if field.isdigit():
             if len(field) > length:
-                raise AchException("field exceeds length: "+length)
+                raise AchException("field exceeds length: "+str(length))
             elif len(field) < length:
                 field = self.make_zero(length) + field
         elif field.isalpha():
             if len(field) > length:
-                raise AchException("field exceeds length: "+length)
+                raise AchException("field exceeds length: "+str(length))
             elif len(field) < length:
                 field = field + self.make_space(length)
         else:
@@ -123,7 +123,7 @@ class Header(Ach):
     format_code      = '1'
 
     def __init__(self, immediate_dest, immediate_org, file_id_mod,
-                    im_dest_name, im_orgn_name, reference_code):
+                    im_dest_name, im_orgn_name, reference_code=''):
         """
         Initializes all values needed for 
         our header row
@@ -138,7 +138,11 @@ class Header(Ach):
         self.file_id_mod      = self.validate_upper_num_field(file_id_mod,1)
         self.im_dest_name     = self.validate_alpha_numeric_field(im_dest_name, 23)
         self.im_orgn_name     = self.validate_alpha_numeric_field(im_orgn_name, 23)
-        self.reference_code   = self.validate_alpha_numeric_field(reference_code, 8)
+
+        if reference_code != '':
+            self.reference_code   = self.validate_alpha_numeric_field(reference_code, 8)
+        else:
+            self.reference_code = self.make_space(8)
 
     def get_row(self):
         """
@@ -302,42 +306,70 @@ class BatchControl(Ach):
 
     record_type_code = '8'
 
-    def __init__(self, serv_cls_code, entadd_count, entry_hash,
-                    debit_amount, credit_amount, company_id, 
-                    orig_dfi_id, batch_id, mesg_auth_code=''):
+    numeric_fields = ['serv_cls_code','entadd_count','entry_hash','debit_amount',
+                        'credit_amount','orig_dfi_id','batch_id']
+
+    alpha_numeric_fields = ['company_id','mesg_auth_code','reserved']
+
+    field_lengths = {
+        'serv_cls_code' : 3,
+        'entadd_count'  : 6,
+        'entry_hash'    : 10,
+        'debit_amount'  : 12,
+        'credit_amount' : 12,
+        'company_id'    : 10,
+        'mesg_auth_code': 19,
+        'reserved'      : 6,
+        'orig_dfi_id'   : 8,
+        'batch_id'      : 7,
+    }
+
+    def __init__(self, serv_cls_code, entadd_count='', entry_hash='',
+                    debit_amount='', credit_amount='', company_id='', 
+                    orig_dfi_id='', batch_id='', mesg_auth_code=''):
         """
         Initializes and validates the batch control record
         """
-        
-        debit_amount = int((100 * debit_amount))
-        credit_amount = int((100 * credit_amount)) 
+        args = locals().copy()
 
-        self.serv_cls_code    = self.validate_numeric_field( serv_cls_code, 3 )
-        self.entadd_count     = self.validate_numeric_field( entadd_count, 6 )
-        self.entry_hash       = self.validate_numeric_field( entry_hash, 10 )
-        self.debit_amount     = self.validate_numeric_field( debit_amount, 12 )
-        self.credit_amount    = self.validate_numeric_field( credit_amount, 12 )
-        self.company_id       = self.validate_alpha_numeric_field( company_id, 10 )
+        self.reserved = self.make_space(6)
 
-        # Field usually left blank, but lets see if it's not
-        if mesg_auth_code == '':
-            self.mesg_auth_code = self.make_space(19)
+        for key in args:
+            if key == 'self': continue
+
+            if args[key] != '':
+                if key == 'debit_amount' or key == 'credit_amount':
+                    self.__setattr__( key, int(100 * args[key]) )
+                else:
+                    self.__setattr__( key, args[key] )
+
+            elif key in self.numeric_fields:
+                self.__setattr__( key, self.make_zero(self.field_lengths[key]) )
+
+            elif key in self.alpha_numeric_fields:
+                self.__setattr__( key, self.make_space(self.field_lengths[key]) )
+
+    def __setattr__(self, name, value):
+        if name in self.numeric_fields:
+            value = self.validate_numeric_field(value, self.field_lengths[name])
+        elif name in self.alpha_numeric_fields:
+            value = self.validate_alpha_numeric_field(value, self.field_lengths[name])
         else:
-            self.mesg_auth_code = self.validate_alpha_numeric_field( mesg_auth_code, 19)
-        
-        self.orig_dfi_id      = self.validate_numeric_field( orig_dfi_id, 8 )
-        self.batch_id         = self.validate_numeric_field( batch_id, 7 )
+            raise TypeError(name+" not in numeric_fields or alpha_numeric_fields")
 
+        super(BatchControl, self).__setattr__(name, value)
 
     def get_row(self):
 
-        return self.serv_cls_code +\
+        return self.record_type_code +\
+               self.serv_cls_code +\
                self.entadd_count +\
                self.entry_hash +\
                self.debit_amount +\
                self.credit_amount +\
                self.company_id +\
                self.mesg_auth_code +\
+               self.reserved +\
                self.orig_dfi_id +\
                self.batch_id 
 
@@ -459,7 +491,7 @@ class EntryDetail(Ach):
         else:
             raise TypeError(name+" not in numeric_fields or alpha_numeric_fields")
 
-        super(AchEntryDetail, self).__setattr__(name, value)
+        super(EntryDetail, self).__setattr__(name, value)
 
     def get_row(self):
 
@@ -480,7 +512,7 @@ class EntryDetail(Ach):
         elif self.std_ent_cls_code in ['CCD','PPD','TEL']:
             ret_string += self.id_number +\
                 self.ind_name +\
-                disc_data
+                self.disc_data
 
         elif self.std_ent_cls_code == 'CIE':
             ret_string += self.ind_name +\
@@ -546,7 +578,7 @@ class EntryDetail(Ach):
 
         nearest_10 = math.ceil(tmp_num/10.0)
 
-        return int( (nearest_10 * 10) - tmp_num) 
+        self.check_digit = int( (nearest_10 * 10) - tmp_num) 
 
 
 
@@ -621,7 +653,7 @@ class AddendaRecord(Ach):
         else:
             raise TypeError(value+" not in numeric or alpha numeric fields")
 
-        super(AchAddendaRecord, self).__setattr__(name, value)
+        super(AddendaRecord, self).__setattr__(name, value)
 
     def get_row(self):
 

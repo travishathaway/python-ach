@@ -1,3 +1,9 @@
+from data_types import (Header, FileControl, BatchHeader, BatchControl,
+                        EntryDetail, AddendaRecord) 
+from settings import *
+
+from datetime import datetime
+
 class AchFile(object):
 
     """
@@ -17,14 +23,70 @@ class AchFile(object):
             - get_total_credit
     """
 
-    def __init__(self, header, batches, control ):
+    def __init__(self, file_id_mod):
         """
-        args: header (Header), batches (List[FileBatch]), control (FileControl)
+        args: header (Header), batches (List[FileBatch]), control (FileControl)t
         """
 
-        self.header  = header
-        self.batches = batches
-        self.control = control
+        self.header  = Header(IMMEDIATE_DEST,IMMEDIATE_ORG,file_id_mod,IMMEDIATE_DEST_NAME,
+                                IMMEDIATE_ORG_NAME,)
+        self.batches = list()
+
+    def add_batch(self,std_ent_cls_code,batch_info=list(),credits=False,debits=False):
+
+        entry_desc = self.get_entry_desc(std_ent_cls_code)
+
+        batch_count = len(self.batches) + 1
+
+        datestamp = datetime.today().strftime('%y%m%d') #YYMMDD
+
+        if credits and debits:
+            serv_cls_code = '200'
+        elif credits:
+            serv_cls_code = '220'
+        elif debits:
+            serv_cls_code = '225'
+
+        batch_header = BatchHeader(serv_cls_code=serv_cls_code,company_name=IMMEDIATE_ORG_NAME,
+                                    company_id=COMPANY_ID, std_ent_cls_code=std_ent_cls_code,
+                                    entry_desc=entry_desc, desc_date='', eff_ent_date=datestamp,
+                                    orig_stat_code='1', orig_dfi_id=ORIG_DFI_ID,batch_id=batch_count)
+
+        entries = list()
+        entry_counter = 1
+
+        for record in batch_info:
+            entry = EntryDetail(std_ent_cls_code)
+
+            entry.transaction_code = record['type']
+            entry.recv_dfi_id = record['routing_number']
+            
+            if len(record['routing_number']) < 9:
+                entry.calc_check_digit()
+            else:
+                entry.check_digit = record['routing_number'][8]
+
+            entry.dfi_acnt_num  = record['account_number']
+            entry.amount        = int(record['amount']) * 100
+            entry.ind_name      = record['name'].upper()[:22]
+            entry.trace_num     = ORIG_DFI_ID + entry.validate_numeric_field(entry_counter, 7)
+
+            entries.append(entry)
+            entry_counter += 1
+
+        self.batches.append( FileBatch( batch_header, entries ) )
+
+        
+    def get_entry_desc(self, std_ent_cls_code):
+
+        if std_ent_cls_code == 'PPD':
+            entry_desc = 'PAYROLL'
+        elif std_ent_cls_code == 'CCD':
+            entry_desc = 'DUES'
+        else:
+            entry_desc = 'OTHER'
+
+        return entry_desc
 
     def render_to_string(self):
         """
@@ -33,10 +95,10 @@ class AchFile(object):
 
         ret_string = self.header.get_row() + "\n"
 
-        for batch in batches:
-            ret_string += batch.render_to_string
+        for batch in self.batches:
+            ret_string += batch.render_to_string()
 
-        ret_string += self.control.get_row()
+        #ret_string += self.control.get_row()
 
         return ret_string
 
@@ -50,27 +112,31 @@ class FileBatch(object):
     BatchControl (1)
     """
 
-    def __init__(self, batch_header, entries, batch_control):
+    def __init__(self, batch_header, entries):
         """
-        args: batch_header (BatchHeader), entries (List[FileEntry]), batch_control (BatchControl)
+        args: batch_header (BatchHeader), entries (List[FileEntry])
         """
 
         self.batch_header   = batch_header
         self.entries        = entries
-        self.batch_control  = batch_control
+
+        #set up batch_control 
+
+        batch_control = BatchControl(self.batch_header.serv_cls_code)
 
 
+        self.batch_control = batch_control
     def render_to_string(self):
         """
         Renders a nacha file batch to string
         """
 
-        ret_string = self.batch_header + "\n"
+        ret_string = self.batch_header.get_row() + "\n"
 
-        for entry in entries:
-            ret_string += self.entries.render_to_string()
+        for entry in self.entries:
+            ret_string += entry.get_row() + "\n"
 
-        ret_string += self.batch_control + "\n"
+        ret_string += self.batch_control.get_row() + "\n"
 
         return ret_string
 
