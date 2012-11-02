@@ -1,8 +1,10 @@
+import math
 from data_types import (Header, FileControl, BatchHeader, BatchControl,
                         EntryDetail, AddendaRecord) 
 from settings import *
 
 from datetime import datetime
+from pprint import pprint
 
 class AchFile(object):
 
@@ -32,7 +34,7 @@ class AchFile(object):
                                 IMMEDIATE_ORG_NAME,)
         self.batches = list()
 
-    def add_batch(self,std_ent_cls_code,batch_info=list(),credits=False,debits=False):
+    def add_batch(self,std_ent_cls_code,batch_info=list(),credits=True,debits=False):
 
         entry_desc = self.get_entry_desc(std_ent_cls_code)
 
@@ -57,6 +59,7 @@ class AchFile(object):
 
         for record in batch_info:
             entry = EntryDetail(std_ent_cls_code)
+            pprint(record)
 
             entry.transaction_code = record['type']
             entry.recv_dfi_id = record['routing_number']
@@ -67,7 +70,7 @@ class AchFile(object):
                 entry.check_digit = record['routing_number'][8]
 
             entry.dfi_acnt_num  = record['account_number']
-            entry.amount        = int(record['amount']) * 100
+            entry.amount        = int(round(float(record['amount']), 2) * 100)
             entry.ind_name      = record['name'].upper()[:22]
             entry.trace_num     = ORIG_DFI_ID + entry.validate_numeric_field(entry_counter, 7)
 
@@ -75,8 +78,85 @@ class AchFile(object):
             entry_counter += 1
 
         self.batches.append( FileBatch( batch_header, entries ) )
+        self.set_control()
 
-        
+
+    def set_control(self):
+
+        batch_count     = len(self.batches)
+        block_count     = self.get_block_count(self.batches)
+        entry_hash      = self.get_entry_hash(self.batches)
+        entadd_count    = self.get_entadd_count(self.batches)
+        debit_amount    = self.get_debit_amount(self.batches)
+        credit_amount   = self.get_credit_amount(self.batches)
+        print block_count
+        self.control = FileControl(batch_count, block_count, entadd_count, entry_hash, debit_amount, credit_amount)
+
+    def get_block_count(self, batches):
+
+        return int(math.ceil(self.get_lines(batches)/10.0))
+
+    def get_lines(self, batches):
+        header_count    = 1
+        control_count   = 1
+        batch_header_count = len(batches)
+        batch_footer_count = batch_header_count
+
+        entadd_count = self.get_entadd_count(batches)
+
+        lines = header_count + control_count + batch_header_count + batch_footer_count + entadd_count
+
+        return lines
+
+    def get_entadd_count(self, batches):
+        entadd_count = 0
+
+        for batch in batches:
+            entadd_count = entadd_count + int(batch.batch_control.entadd_count)
+
+        return entadd_count
+
+    def get_entry_hash(self, batches):
+        entry_hash = 0
+
+        for batch in batches:
+            entry_hash = entry_hash + int(batch.batch_control.entry_hash)
+
+        if len(str(entry_hash)) > 10:
+            pos = len(str(entry_hash)) - 10
+            entry_hash = str(entry_hash)[pos:]
+        else:
+            entry_hash = str(entry_hash)
+
+        return entry_hash
+
+    def get_debit_amount(self, batches):
+        debit_amount = 0
+
+        for batch in batches:
+            debit_amount = debit_amount + int(batch.batch_control.debit_amount)
+
+        return debit_amount
+
+    def get_credit_amount(self, batches):
+        credit_amount = 0
+
+        for batch in batches:
+            credit_amount = credit_amount + int(batch.batch_control.credit_amount)
+
+        return credit_amount
+
+    def get_nines(self, rows):
+        nines = ''
+
+        for i in range(rows):
+            for l in range(94):
+                nines += '9'
+            if i == rows - 1: continue
+            nines += "\n"
+
+        return nines
+
     def get_entry_desc(self, std_ent_cls_code):
 
         if std_ent_cls_code == 'PPD':
@@ -98,7 +178,13 @@ class AchFile(object):
         for batch in self.batches:
             ret_string += batch.render_to_string()
 
-        #ret_string += self.control.get_row()
+        ret_string += self.control.get_row() + "\n"
+
+        lines = self.get_lines(self.batches)
+
+        nine_lines = int(10 * (math.ceil(lines / 10.0) - (lines / 10.0)));
+
+        ret_string += self.get_nines(nine_lines)
 
         return ret_string
 
@@ -124,8 +210,50 @@ class FileBatch(object):
 
         batch_control = BatchControl(self.batch_header.serv_cls_code)
 
+        batch_control.entadd_count  = len(self.entries);
+        batch_control.entry_hash    = self.get_entry_hash(self.entries)
+        batch_control.debit_amount  = self.get_debit_amount(self.entries)
+        batch_control.credit_amount = self.get_credit_amount(self.entries)
+        batch_control.company_id    = self.batch_header.company_id
+        batch_control.orig_dfi_id   = self.batch_header.orig_dfi_id
+        batch_control.batch_id      = self.batch_header.batch_id
 
         self.batch_control = batch_control
+
+    def get_entry_hash(self, entries):
+
+        entry_hash = 0
+
+        for entry in entries:
+            entry_hash = entry_hash + int(entry.recv_dfi_id)
+
+        if len(str(entry_hash)) > 10:
+            pos = len(str(entry_hash)) - 10
+            entry_hash = str(entry_hash)[pos:]
+        else:
+            entry_hash = str(entry_hash)
+
+        return entry_hash
+
+    def get_debit_amount(self, entries):
+        debit_amount = 0
+
+        for entry in entries:
+            if str(entry.transaction_code) in ['27','37','28','38']:
+                debit_amount = debit_amount + int(entry.amount)
+
+        return debit_amount 
+
+    def get_credit_amount(self, entries):
+        credit_amount = 0
+
+        for entry in entries:
+            if str(entry.transaction_code) in ['22','32','23','33']:
+                credit_amount = credit_amount + int(entry.amount)
+
+        return credit_amount 
+
+
     def render_to_string(self):
         """
         Renders a nacha file batch to string
