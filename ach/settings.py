@@ -1,6 +1,9 @@
-IMMEDIATE_DEST = ' 123456789'
-IMMEDIATE_ORG = ' 123456789'
-IMMEDIATE_DEST_NAME = 'YOUR BANK'
-IMMEDIATE_ORG_NAME = 'YOUR COMPANY'
-COMPANY_ID = '1234567890' #tax number
-ORIG_DFI_ID = '12345678'
+
+ach_setttings = {
+    'immediate_dest' : '123456789',
+    'immediate_org' : '123456789',
+    'immediate_dest_name' : 'YOUR BANK',
+    'immediate_org_name' : 'YOUR COMPANY',
+    'company_id' : '1234567890', #tax number
+    'orig_dfi_id' : '12345678',
+}
