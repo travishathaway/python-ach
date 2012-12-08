@@ -2,7 +2,7 @@ from distutils.core import setup
 
 setup(
     name='ach',
-    version='0.1dev',
+    version='0.1',
     packages=[
         'ach',
     ],

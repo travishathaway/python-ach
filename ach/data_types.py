@@ -3,7 +3,7 @@ import re
 from datetime import datetime
 
 """
-Collection of class the comprise the row type objects
+Collection of classes that comprise the row type objects
 in a nacha file
 """
 
@@ -98,7 +98,7 @@ class Ach(object):
             elif len(field) < length:
                 field = field + self.make_space(length)
         else:
-            raise AchException("field is neith alpha or numeric")
+            raise AchException("field is neither alpha nor numeric")
 
         return field
 
@@ -131,8 +131,8 @@ class Header(Ach):
 
         date = datetime.today()
 
-        self.immediate_dest   = immediate_dest # weird field, provided by bank
-        self.immediate_org    = immediate_org # again, weird field, provided by bank
+        self.immediate_dest   = immediate_dest
+        self.immediate_org    = immediate_org 
         self.file_crt_date    = date.strftime('%y%m%d')
         self.file_crt_time    = date.strftime('%M%S')
         self.file_id_mod      = self.validate_upper_num_field(file_id_mod,1)

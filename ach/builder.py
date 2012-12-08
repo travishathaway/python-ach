@@ -4,37 +4,29 @@ from data_types import (Header, FileControl, BatchHeader, BatchControl,
 from settings import *
 
 from datetime import datetime
-from pprint import pprint
 
 class AchFile(object):
-
     """
-    Holds:
+    This class is what stores the ach data.  Its main external methods
+    are `add_batch` and `render_to_string`.     
 
-    Header (1)
-    Batch  (n) <-- multiple
-    Footer (1)
-
-    What else this needs to do:
-        - Calculate Control fields and credate a FileControl object
-            - get_batch_count
-            - get_block_count
-            - get_entry_add_count
-            - get_entry_hash
-            - get_total_debit
-            - get_total_credit
     """
 
     def __init__(self, file_id_mod):
         """
-        args: header (Header), batches (List[FileBatch]), control (FileControl)t
+        The file_id_mod should be 'A' for the first of the day, 'B' for the second
+        and so on.
         """
 
         self.header  = Header(IMMEDIATE_DEST,IMMEDIATE_ORG,file_id_mod,IMMEDIATE_DEST_NAME,
                                 IMMEDIATE_ORG_NAME,)
         self.batches = list()
 
-    def add_batch(self,std_ent_cls_code,batch_info=list(),credits=True,debits=False):
+    def add_batch(self,std_ent_cls_code, batch_entries=list(),credits=True,debits=False):
+        """
+        Use this to add batches to the file. For valid std_ent_cls_codes see:
+        http://en.wikipedia.org/wiki/Automated_Clearing_House#SEC_codes
+        """
 
         entry_desc = self.get_entry_desc(std_ent_cls_code)
 
@@ -57,12 +49,12 @@ class AchFile(object):
         entries = list()
         entry_counter = 1
 
-        for record in batch_info:
-            entry = EntryDetail(std_ent_cls_code)
-            pprint(record)
+        for record in batch_entries:
 
-            entry.transaction_code = record['type']
-            entry.recv_dfi_id = record['routing_number']
+            entry = EntryDetail(std_ent_cls_code)
+
+            entry.transaction_code = record.get('type')
+            entry.recv_dfi_id = record.get('routing_number')
             
             if len(record['routing_number']) < 9:
                 entry.calc_check_digit()
@@ -89,7 +81,7 @@ class AchFile(object):
         entadd_count    = self.get_entadd_count(self.batches)
         debit_amount    = self.get_debit_amount(self.batches)
         credit_amount   = self.get_credit_amount(self.batches)
-        print block_count
+
         self.control = FileControl(batch_count, block_count, entadd_count, entry_hash, debit_amount, credit_amount)
 
     def get_block_count(self, batches):
