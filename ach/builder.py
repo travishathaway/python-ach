@@ -1,7 +1,6 @@
 import math
 from data_types import (Header, FileControl, BatchHeader, BatchControl,
                         EntryDetail, AddendaRecord) 
-from settings import *
 
 from datetime import datetime
 
@@ -12,13 +11,13 @@ class AchFile(object):
 
     """
 
-    def __init__(self, file_id_mod, settings=ach_setttings):
+    def __init__(self, file_id_mod, settings):
         """
         The file_id_mod should be 'A' for the first of the day, 'B' for the second
         and so on.
         """
 
-        self.settings = ach_setttings
+        self.settings = settings
 
         try:
             self.header  = Header(settings['immediate_dest'], settings['immediate_org'], file_id_mod,
@@ -50,7 +49,7 @@ class AchFile(object):
         batch_header = BatchHeader(serv_cls_code=serv_cls_code,company_name=self.settings['immediate_org_name'],
                                     company_id=self.settings['company_id'], std_ent_cls_code=std_ent_cls_code,
                                     entry_desc=entry_desc, desc_date='', eff_ent_date=datestamp,
-                                    orig_stat_code='1', orig_dfi_id=self.settings['orig_dfi_id'],batch_id=batch_count)
+                                    orig_stat_code='1', orig_dfi_id=self.settings['immediate_org'][:8],batch_id=batch_count)
 
         entries = list()
         entry_counter = 1
@@ -70,7 +69,7 @@ class AchFile(object):
             entry.dfi_acnt_num  = record['account_number']
             entry.amount        = int(round(float(record['amount']), 2) * 100)
             entry.ind_name      = record['name'].upper()[:22]
-            entry.trace_num     = self.settings['orig_dfi_id'] + entry.validate_numeric_field(entry_counter, 7)
+            entry.trace_num     = self.settings['immediate_org'][:8] + entry.validate_numeric_field(entry_counter, 7)
 
             entries.append(entry)
             entry_counter += 1
