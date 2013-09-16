@@ -7,6 +7,6 @@ setup(
         'ach',
     ],
     url='https://github.com/travishathaway/python-ach',
-    license='Creative Commons Attribution-Noncommercial-Share Alike license',
+    license='MIT License',
     long_description=open('README.md').read(),
 )
