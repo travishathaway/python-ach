@@ -2,6 +2,8 @@ from distutils.core import setup
 
 setup(
     name='ach',
+    author='Travis Hathaway',
+    author_email='travis.j.hathaway@gmail.com',
     version='0.1',
     packages=[
         'ach',
