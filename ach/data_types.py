@@ -415,7 +415,7 @@ class EntryDetail(Ach):
 
     field_lengths = {
         'transaction_code'      : 2,
-        'recv_dfi_id'           : 8,
+        'recv_dfi_id'           : [8, 9],
         'check_digit'           : 1,
         'dfi_acnt_num'          : 17,
         'amount'                : 10,
@@ -468,7 +468,10 @@ class EntryDetail(Ach):
                     self.__setattr__(key, self.make_space( self.field_lengths[key][1] ) )
 
             elif key in self.numeric_fields:
-                self.__setattr__(key, self.make_zero( self.field_lengths[key] ) )
+                if key == 'recv_dfi_id':
+                    self.__setattr__(key, self.make_zero( self.field_lengths[key][0] ) )
+                else:
+                    self.__setattr__(key, self.make_zero( self.field_lengths[key] ) )
 
             elif key in self.alpha_numeric_fields:
                 self.__setattr__(key, self.make_space( self.field_lengths[key] ) )
@@ -497,7 +500,15 @@ class EntryDetail(Ach):
                 value = self.validate_alpha_numeric_field( value, self.field_lengths[name] )
 
         elif name in self.numeric_fields:
-            value = self.validate_numeric_field( value, self.field_lengths[name] )
+            if name == 'recv_dfi_id':
+                try:
+                    # try 8 digits first
+                    value = self.validate_numeric_field(value, self.field_lengths[name][0])
+                except AchException:
+                    # now try to validate it 9 instead
+                    value = self.validate_numeric_field(value, self.field_lengths[name][1])
+            else:
+                value = self.validate_numeric_field( value, self.field_lengths[name] )
 
         elif name == 'std_ent_cls_code' and value in self.std_ent_cls_code_list:
             pass
@@ -512,11 +523,14 @@ class EntryDetail(Ach):
         ret_string = '';
 
         ret_string = self.record_type_code +\
-                        self.transaction_code +\
-                        self.recv_dfi_id +\
-                        self.check_digit +\
-                        self.dfi_acnt_num +\
-                        self.amount
+                self.transaction_code +\
+                self.recv_dfi_id
+
+        if len(self.recv_dfi_id) < 9:
+            ret_string += self.check_digit
+
+        ret_string += self.dfi_acnt_num +\
+            self.amount
 
         if self.std_ent_cls_code in ['ARC','BOC']:
             ret_string += self.chk_serial_num +\
