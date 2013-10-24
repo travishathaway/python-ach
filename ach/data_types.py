@@ -27,6 +27,19 @@ class Ach(object):
 
         return space_string
 
+    def make_right_justified(self, field, length):
+        """
+        Return string with x number of leading spaces depending on field length
+        Routing numbers should be 9 digits long, so we technically only need 1 leading space.
+
+        """
+
+        if len(field) != length:
+            spaces_needed = length - len(field)
+            return field.rjust(spaces_needed)
+        else:
+            return field
+
     def make_zero(self, zeros=1):
         """
         Return string with x number of zeros
@@ -61,7 +74,7 @@ class Ach(object):
 
     def validate_numeric_field(self, field, length):
         """
-        Validates numeric field and zero right-pads if not 
+        Validates numeric field and zero right-pads if not
         long enough.
         field (int|str)
         length (int)
@@ -125,16 +138,16 @@ class Header(Ach):
     def __init__(self, immediate_dest, immediate_org, file_id_mod,
                     im_dest_name, im_orgn_name, reference_code=''):
         """
-        Initializes all values needed for 
+        Initializes all values needed for
         our header row
         """
 
         date = datetime.today()
 
-        self.immediate_dest   = immediate_dest
-        self.immediate_org    = immediate_org 
+        self.immediate_dest   = self.make_right_justified(immediate_dest, 10)
+        self.immediate_org    = self.make_right_justified(immediate_org, 10)
         self.file_crt_date    = date.strftime('%y%m%d')
-        self.file_crt_time    = date.strftime('%M%S')
+        self.file_crt_time    = date.strftime('%H%M')
         self.file_id_mod      = self.validate_upper_num_field(file_id_mod,1)
         self.im_dest_name     = self.validate_alpha_numeric_field(im_dest_name, 23)
         self.im_orgn_name     = self.validate_alpha_numeric_field(im_orgn_name, 23)
@@ -178,15 +191,16 @@ class FileControl(Ach):
 
     record_type_code = '9'
 
-    def __init__(self, batch_count, block_count, 
+    def __init__(self, batch_count, block_count,
                  entadd_count, entry_hash, debit_amount,
                  credit_amount):
         """
         Initializes all the values we need for our file control record
         """
-        
+
         debit_amount = int((100 * debit_amount))
-        credit_amount = int((100 * credit_amount)) 
+        # Fix 1/4/12 rob@payperks.com
+        # credit_amount = int((100 * credit_amount))
 
         self.batch_count   = self.validate_numeric_field( batch_count, 6)
         self.block_count   = self.validate_numeric_field( block_count, 6)
@@ -241,7 +255,7 @@ class BatchHeader(Ach):
         'batch_id'          : 7,
     }
 
-    def __init__(self,serv_cls_code='220', company_name='', cmpy_dis_data='', 
+    def __init__(self,serv_cls_code='220', company_name='', cmpy_dis_data='',
                     company_id='', std_ent_cls_code='PPD', entry_desc='', desc_date='',
                     eff_ent_date='', orig_stat_code='', orig_dfi_id='', batch_id=''):
         """
@@ -325,7 +339,7 @@ class BatchControl(Ach):
     }
 
     def __init__(self, serv_cls_code, entadd_count='', entry_hash='',
-                    debit_amount='', credit_amount='', company_id='', 
+                    debit_amount='', credit_amount='', company_id='',
                     orig_dfi_id='', batch_id='', mesg_auth_code=''):
         """
         Initializes and validates the batch control record
@@ -371,7 +385,7 @@ class BatchControl(Ach):
                self.mesg_auth_code +\
                self.reserved +\
                self.orig_dfi_id +\
-               self.batch_id 
+               self.batch_id
 
     def get_count(self):
 
@@ -388,7 +402,7 @@ class EntryDetail(Ach):
                                 'BOC', 'TEL', 'MTE', 'SHR', 'CCD',
                                 'CIE', 'POP', 'RCK' ]
 
- 
+
     numeric_fields = ['transaction_code', 'recv_dfi_id', 'check_digit',
                         'amount', 'num_add_recs', 'card_exp_date' ,'doc_ref_num',
                         'ind_card_acct_num', 'card_tr_typ_code_shr', 'add_rec_ind',
@@ -430,8 +444,8 @@ class EntryDetail(Ach):
     def __init__(self, std_ent_cls_code, transaction_code='',recv_dfi_id='', check_digit='',
                     amount='', num_add_recs='', card_exp_date='' ,doc_ref_num='',
                     ind_card_acct_num='', card_tr_typ_code_shr='', card_tr_typ_code_pos='',
-                    trace_num='', dfi_acnt_num='', ind_name='', disc_data='', id_number='', 
-                    recv_cmpy_name='', chk_serial_num='', terminal_city='', terminal_state='', 
+                    trace_num='', dfi_acnt_num='', ind_name='', disc_data='', id_number='',
+                    recv_cmpy_name='', chk_serial_num='', terminal_city='', terminal_state='',
                     pmt_type_code='', add_rec_ind=''):
         """
         Initialize and validate the values in Entry Detail record
@@ -462,7 +476,7 @@ class EntryDetail(Ach):
     def __setattr__(self, name, value):
         """
         Overides the setattr method for the object. We do this so
-        that we can validate the field as it gets assigned. 
+        that we can validate the field as it gets assigned.
         """
 
         if name in self.alpha_numeric_fields:
@@ -471,7 +485,7 @@ class EntryDetail(Ach):
                 value = self.validate_alpha_numeric_field( value, self.field_lengths[name][0] )
             elif name == 'ind_name':
                 value = self.validate_alpha_numeric_field( value, self.field_lengths[name][1] )
-            
+
             # Special handling for Check serial number field
             elif name == 'chk_serial_num' and self.std_ent_cls_code_list == 'POP':
                 value = self.validate_alpha_numeric_field( value, self.field_lengths[name][0] )
@@ -487,7 +501,7 @@ class EntryDetail(Ach):
 
         elif name == 'std_ent_cls_code' and value in self.std_ent_cls_code_list:
             pass
- 
+
         else:
             raise TypeError(name+" not in numeric_fields or alpha_numeric_fields")
 
@@ -561,7 +575,7 @@ class EntryDetail(Ach):
 
         ret_string += self.add_rec_ind +\
             self.trace_num
- 
+
         return ret_string
 
     def get_count(self):
@@ -578,7 +592,7 @@ class EntryDetail(Ach):
 
         nearest_10 = math.ceil(tmp_num/10.0)
 
-        self.check_digit = int( (nearest_10 * 10) - tmp_num) 
+        self.check_digit = int( (nearest_10 * 10) - tmp_num)
 
 
 
@@ -588,7 +602,7 @@ class AddendaRecord(Ach):
     addenda_type_code = '05'
 
     alpha_numeric_fields = ['trans_desc', 'net_id_code', 'term_id_code',
-                            'trans_serial_code', 'terminal_loc', 'terminal_city', 
+                            'trans_serial_code', 'terminal_loc', 'terminal_city',
                             'terminal_state', 'ref_info_1', 'ref_info_2', 'pmt_rel_info',
                             'auth_card_exp']
 
@@ -613,16 +627,16 @@ class AddendaRecord(Ach):
         'auth_card_exp'     : 6,
         'add_seq_num'       : 4,
     }
-        
+
 
     def __init__(self, std_ent_cls_code, trans_desc='', net_id_code='', term_id_code='',
-                    ref_info_1='', ref_info_2='', trans_serial_code='', 
-                    trans_date='', trans_time='', terminal_loc='', 
+                    ref_info_1='', ref_info_2='', trans_serial_code='',
+                    trans_date='', trans_time='', terminal_loc='',
                     terminal_city='', terminal_state='', trace_num='',
                     auth_card_exp='',add_seq_num='', ent_det_seq_num='',
                     pmt_rel_info=''):
         """
-        Initializes and validates values in entry addenda rows 
+        Initializes and validates values in entry addenda rows
         """
 
         fields = locals().copy()

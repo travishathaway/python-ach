@@ -28,3 +28,4 @@ pip-log.txt
 
 #Vim swp
 *.swp
+.idea
