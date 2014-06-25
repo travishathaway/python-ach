@@ -35,8 +35,7 @@ class Ach(object):
         """
 
         if len(field) != length:
-            spaces_needed = length - len(field)
-            return field.rjust(spaces_needed)
+            return field.rjust(length)
         else:
             return field
 
