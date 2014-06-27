@@ -1,7 +1,10 @@
 import math
 from datetime import datetime
 
-from data_types import (Header, FileControl, BatchHeader, BatchControl, EntryDetail)
+from data_types import (
+    Header, FileControl, BatchHeader, 
+    BatchControl, EntryDetail, AddendaRecord
+)
 
 
 class AchFile(object):
@@ -73,7 +76,7 @@ class AchFile(object):
             entry.ind_name = record['name'].upper()[:22]
             entry.trace_num = self.settings['immediate_dest'][:8] + entry.validate_numeric_field(entry_counter, 7)
 
-            entries.append(entry)
+            entries.append((entry, record.get('addenda', [])))
             entry_counter += 1
 
         self.batches.append(FileBatch(batch_header, entries))
@@ -203,7 +206,10 @@ class FileBatch(object):
         """
 
         self.batch_header = batch_header
-        self.entries = entries
+        self.entries = []
+
+        for entry, addenda in entries:
+            self.entries.append(FileEntry(entry, addenda))
 
         #set up batch_control
 
@@ -224,7 +230,7 @@ class FileBatch(object):
         entry_hash = 0
 
         for entry in entries:
-            entry_hash += int(entry.recv_dfi_id)
+            entry_hash += int(entry.entry_detail.recv_dfi_id)
 
         if len(str(entry_hash)) > 10:
             pos = len(str(entry_hash)) - 10
@@ -238,7 +244,7 @@ class FileBatch(object):
         debit_amount = 0
 
         for entry in entries:
-            if str(entry.transaction_code) in ['27', '37', '28', '38']:
+            if str(entry.entry_detail.transaction_code) in ['27', '37', '28', '38']:
                 debit_amount = debit_amount + int(entry.amount)
 
         return debit_amount
@@ -247,8 +253,8 @@ class FileBatch(object):
         credit_amount = 0
 
         for entry in entries:
-            if str(entry.transaction_code) in ['22', '32', '23', '33']:
-                credit_amount += int(entry.amount)
+            if str(entry.entry_detail.transaction_code) in ['22', '32', '23', '33']:
+                credit_amount += int(entry.entry_detail.amount)
 
         return credit_amount
 
@@ -260,7 +266,7 @@ class FileBatch(object):
         ret_string = self.batch_header.get_row() + "\n"
 
         for entry in self.entries:
-            ret_string += entry.get_row() + "\n"
+            ret_string += entry.render_to_string()
 
         ret_string += self.batch_control.get_row() + "\n"
 
@@ -275,13 +281,23 @@ class FileEntry(object):
     AddendaRecord (n) <-- for some types of entries there can be more than one
     """
 
-    def __init__(self, entry_detail, addenda_record):
+    def __init__(self, entry_detail, addenda_record=[]):
         """
         args: entry_detail( EntryDetail), addenda_record (List[AddendaRecord])
         """
 
         self.entry_detail = entry_detail
-        self.addenda_record = addenda_record
+        self.addenda_record = []
+
+        for index,addenda in enumerate(addenda_record):
+            self.addenda_record.append(
+                AddendaRecord(
+                    self.entry_detail.std_ent_cls_code,
+                    pmt_rel_info=addenda.get('payment_related_info'),
+                    add_seq_num=index,
+                    ent_det_seq_num=entry_detail.trace_num[-7:]
+                )
+            )
 
     def render_to_string(self):
         """
