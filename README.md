@@ -1,7 +1,7 @@
 python-ach
 ==========
 
-ACH file generator module for python.  So far, this has been tested with "PPD" and "CCD" batches without addenda records.  Support for addenda is on the agenda. 
+ACH file generator module for python.  So far, this has been tested with "PPD" and "CCD" batches with addenda records.
 
 Example
 =======
@@ -29,6 +29,11 @@ entries = [
         'account_number' : '11232132',
         'amount'         : '10.00',
         'name'           : 'Alice Wanderdust',
+        'addenda' : [
+            {
+                'payment_related_info': 'Here is some additional information',
+            },
+        ],
     },
     {
         'type'           : '22',
