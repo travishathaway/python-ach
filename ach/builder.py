@@ -69,7 +69,7 @@ class AchFile(object):
                 entry.check_digit = record['routing_number'][8]
 
             entry.dfi_acnt_num = record['account_number']
-            entry.amount = int(round(float(record['amount']), 2) * 100)
+            entry.amount = int(round(float(record['amount']) * 100))
             entry.ind_name = record['name'].upper()[:22]
             entry.trace_num = self.settings['immediate_dest'][:8] + entry.validate_numeric_field(entry_counter, 7)
 
