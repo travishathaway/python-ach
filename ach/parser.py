@@ -18,7 +18,7 @@ class Parser(object):
     ENTRY_DETAIL = '6'
     ADDENDA_RECORD = '7'
 
-    FILE_HEADER_RECORD = [
+    FILE_HEADER_DEF = [
         {
             'field': 'record_type_code',
             'pos': 0,
@@ -86,6 +86,261 @@ class Parser(object):
         }
     ]
 
+    FILE_CONTROL_DEF = [
+        {
+            'field': 'record_type_code',
+            'pos': 0,
+            'len': 1,
+        },
+        {
+            'field': 'batch_count',
+            'pos': 1,
+            'len': 6,
+        },
+        {
+            'field': 'block_count',
+            'pos': 7,
+            'len': 6,
+        },
+        {
+            'field': 'entadd_count',
+            'pos': 13,
+            'len': 8,
+        },
+        {
+            'field': 'entry_hash',
+            'pos': 21,
+            'len': 10,
+        },
+        {
+            'field': 'debit_amount',
+            'pos': 31,
+            'len': 12,
+        },
+        {
+            'field': 'credit_amount',
+            'pos': 43,
+            'len': 12,
+        },
+        {
+            'field': 'reserved',
+            'pos': 55,
+            'len': 39,
+        },
+    ]
+
+    BATCH_HEADER_DEF = [
+        {
+            'field': 'record_type_code',
+            'pos': 0,
+            'len': 1,
+        },
+        {
+            'field': 'serv_cls_code',
+            'pos': 1,
+            'len': 3,
+        },
+        {
+            'field': 'company_name',
+            'pos': 4,
+            'len': 16,
+        },
+        {
+            'field': 'cmpy_dis_data',
+            'pos': 20,
+            'len': 20,
+        },
+        {
+            'field': 'company_id',
+            'pos': 40,
+            'len': 10,
+        },
+        {
+            'field': 'std_ent_cls_code',
+            'pos': 50,
+            'len': 3,
+        },
+        {
+            'field': 'entry_desc',
+            'pos': 53,
+            'len': 10,
+        },
+        {
+            'field': 'desc_date',
+            'pos': 63,
+            'len': 6,
+        },
+        {
+            'field': 'eff_ent_date',
+            'pos': 69,
+            'len': 6,
+        },
+        {
+            'field': 'settlement_date',
+            'pos': 75,
+            'len': 3,
+        },
+        {
+            'field': 'orig_stat_code',
+            'pos': 78,
+            'len': 1,
+        },
+        {
+            'field': 'orig_dfi_id',
+            'pos': 79,
+            'len': 8,
+        },
+        {
+            'field': 'batch_id',
+            'pos': 87,
+            'len': 7,
+        },
+    ]
+
+    BATCH_CONTROL_DEF = [
+        {
+            'field': 'record_type_code',
+            'pos': 0,
+            'len': 1,
+        },
+        {
+            'field': 'serv_cls_code',
+            'pos': 1,
+            'len': 3,
+        },
+        {
+            'field': 'entadd_count',
+            'pos': 4,
+            'len': 6,
+        },
+        {
+            'field': 'entry_hash',
+            'pos': 10,
+            'len': 10,
+        },
+        {
+            'field': 'debit_amount',
+            'pos': 20,
+            'len': 12,
+        },
+        {
+            'field': 'credit_amount',
+            'pos': 32,
+            'len': 12,
+        },
+        {
+            'field': 'company_id',
+            'pos': 44,
+            'len': 10,
+        },
+        {
+            'field': 'mesg_auth_code',
+            'pos': 54,
+            'len': 19,
+        },
+        {
+            'field': 'reserved',
+            'pos': 73,
+            'len': 6,
+        },
+        {
+            'field': 'orig_dfi_id',
+            'pos': 79,
+            'len': 8,
+        },
+        {
+            'field': 'orig_dfi_id',
+            'pos': 87,
+            'len': 7,
+        },
+    ]
+
+    ENTRY_DETAIL_DEF = [
+        {
+            'field': 'record_type_code',
+            'pos': 0,
+            'len': 1,
+        },
+        {
+            'field': 'transaction_code',
+            'pos': 1,
+            'len': 2,
+        },
+        {
+            'field': 'recv_dfi_id',
+            'pos': 3,
+            'len': 8,
+        },
+        {
+            'field': 'check_digit',
+            'pos': 11,
+            'len': 1,
+        },
+        {
+            'field': 'dfi_acnt_num',
+            'pos': 12,
+            'len': 17,
+        },
+        {
+            'field': 'amount',
+            'pos': 29,
+            'len': 10,
+        },
+        {
+            'field': 'ind_id',
+            'pos': 39,
+            'len': 15,
+        },
+        {
+            'field': 'ind_name',
+            'pos': 54,
+            'len': 22,
+        },
+        {
+            'field': 'disc_data',
+            'pos': 76,
+            'len': 2,
+        },
+        {
+            'field': 'add_rec_ind',
+            'pos': 78,
+            'len': 1,
+        },
+        {
+            'field': 'trace_num',
+            'pos': 79,
+            'len': 15,
+        },
+    ]
+
+    ADDENDA_RECORD_DEF = [
+        {
+            'field': 'record_type_code',
+            'pos': 0,
+            'len': 1,
+        },
+        {
+            'field': 'addenda_type_code',
+            'pos': 1,
+            'len': 2,
+        },
+        {
+            'field': 'pmt_rel_info',
+            'pos': 3,
+            'len': 80,
+        },
+        {
+            'field': 'add_seq_num',
+            'pos': 83,
+            'len': 4,
+        },
+        {
+            'field': 'ent_det_seq_num',
+            'pos': 87,
+            'len': 7,
+        },
+    ]
+
     record_type_codes = {
         '1': 'file_header',
         '9': 'file_control',
@@ -130,7 +385,7 @@ class Parser(object):
             if line:
                 if line[0] == self.FILE_HEADER:
                     self.ach_data['file_header'] = self.__parse_line(
-                        line, 'FILE_HEADER_RECORD'
+                        line, 'FILE_HEADER_DEF'
                     )
                     break
 
@@ -138,7 +393,9 @@ class Parser(object):
         for line in self.ach_lines:
             if line:
                 if line[0] == self.FILE_CONTROL:
-                    self.ach_data['file_control'] = line
+                    self.ach_data['file_control'] = self.__parse_line(
+                        line, 'FILE_CONTROL_DEF'
+                    )
                     break
 
     def __get_batch_info(self):
@@ -160,8 +417,14 @@ class Parser(object):
 
         for batch in batch_info:
             self.ach_data['batches'].append({
-                'batch_header': self.ach_lines[batch['batch_header_line']],
-                'batch_control': self.ach_lines[batch['batch_control_line']],
+                'batch_header': self.__parse_line(
+                    self.ach_lines[batch['batch_header_line']],
+                    'BATCH_HEADER_DEF'
+                ),
+                'batch_control': self.__parse_line(
+                    self.ach_lines[batch['batch_control_line']],
+                    'BATCH_CONTROL_DEF'
+                ),
                 'entries': [],
             })
 
@@ -177,14 +440,19 @@ class Parser(object):
 
                     if self.ach_lines[line_num][0] == self.ENTRY_DETAIL:
                         self.ach_data['batches'][cur_batch]['entries'].append({
-                            'entry_detail': self.ach_lines[line_num],
+                            'entry_detail': self.__parse_line(
+                                self.ach_lines[line_num],
+                                'ENTRY_DETAIL_DEF'
+                            ),
                             'addenda': []
                         })
                     if self.ach_lines[line_num][0] == self.ADDENDA_RECORD:
                         self.ach_data['batches'][cur_batch]['entries'][
                             cur_entry
                         ]['addenda'].append(
-                            self.ach_lines[line_num]
+                            self.__parse_line(
+                                self.ach_lines[line_num], 'ADDENDA_RECORD_DEF'
+                            )
                         )
 
     def __parse_file_header_line(self, line):
