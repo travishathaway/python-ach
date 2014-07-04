@@ -224,17 +224,21 @@ class FileBatch(object):
         args: batch_header (BatchHeader), entries (List[FileEntry])
         """
 
+        entadd_count = 0
+
         self.batch_header = batch_header
         self.entries = []
 
         for entry, addenda in entries:
+            entadd_count += 1
+            entadd_count += len(addenda)
             self.entries.append(FileEntry(entry, addenda))
 
         #set up batch_control
 
         batch_control = BatchControl(self.batch_header.serv_cls_code)
 
-        batch_control.entadd_count = len(self.entries)
+        batch_control.entadd_count = entadd_count
         batch_control.entry_hash = self.get_entry_hash(self.entries)
         batch_control.debit_amount = self.get_debit_amount(self.entries)
         batch_control.credit_amount = self.get_credit_amount(self.entries)
@@ -319,6 +323,9 @@ class FileEntry(object):
                     ent_det_seq_num=entry_detail.trace_num[-7:]
                 )
             )
+
+        if self.addenda_record:
+            self.entry_detail.add_rec_ind = 1
 
     def render_to_string(self):
         """
