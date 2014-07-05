@@ -1,10 +1,5 @@
 import json
 
-#from .data_types import (
-#    Header, FileControl, BatchHeader,
-#    BatchControl, EntryDetail, AddendaRecord
-#)
-
 
 class Parser(object):
     '''
@@ -454,21 +449,3 @@ class Parser(object):
                                 self.ach_lines[line_num], 'ADDENDA_RECORD_DEF'
                             )
                         )
-
-    def __parse_file_header_line(self, line):
-        return {}
-
-    def __parse_file_control_line(self, line):
-        return {}
-
-    def __parse_batch_header(self, line):
-        return {}
-
-    def __parse_batch_control(self, line):
-        return {}
-
-    def __parse_entry_detail(self, line):
-        return {}
-
-    def __parse_addenda_record(self, line):
-        return {}
