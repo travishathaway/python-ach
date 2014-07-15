@@ -269,7 +269,7 @@ class FileBatch(object):
         for entry in entries:
             if str(entry.entry_detail.transaction_code) in \
                     ['27', '37', '28', '38']:
-                debit_amount = debit_amount + int(entry.amount)
+                debit_amount = debit_amount + int(entry.entry_detail.amount)
 
         return debit_amount
 

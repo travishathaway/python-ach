@@ -204,8 +204,7 @@ class FileControl(Ach):
         """
 
         debit_amount = int((100 * debit_amount))
-        # Fix 1/4/12 rob@payperks.com
-        # credit_amount = int((100 * credit_amount))
+        credit_amount = int((100 * credit_amount))
 
         self.batch_count = self.validate_numeric_field(batch_count, 6)
         self.block_count = self.validate_numeric_field(block_count, 6)

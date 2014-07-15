@@ -24,7 +24,7 @@ entries = [
         ],
     },
     {
-        'type'           : '22',
+        'type'           : '27',
         'routing_number' : '12345678',
         'account_number' : '234234234',
         'amount'         : '150.00',
