@@ -17,6 +17,11 @@ entries = [
         'account_number' : '11232132',
         'amount'         : '10.00',
         'name'           : 'Alice Wanderdust',
+        'addenda' : [
+            {
+                'payment_related_info': 'Here is some additional information',
+            },
+        ],
     },
     {
         'type'           : '22',
