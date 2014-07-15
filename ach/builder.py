@@ -203,7 +203,7 @@ class AchFile(object):
 
         lines = self.get_lines(self.batches)
 
-        nine_lines = int(10 * (math.ceil(lines / 10.0) - (lines / 10.0)))
+        nine_lines = int(round(10 * (math.ceil(lines / 10.0) - (lines / 10.0))))
 
         ret_string += self.get_nines(nine_lines)
 
