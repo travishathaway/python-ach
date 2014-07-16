@@ -440,35 +440,31 @@ class EntryDetail(Ach):
                             'card_tr_typ_code_pos', 'pmt_type_code']
 
     field_lengths = {
-        'transaction_code': 2,
-        'recv_dfi_id': 8,
-        'check_digit': 1,
-        'dfi_acnt_num': 17,
-        'amount': 10,
-        'chk_serial_num': [
-            9,  # POP
-            15,  # ARC, BOC
-        ],
-        'ind_name': [
-            15,  # CIE, MTE
-            22,  # ARC, BOC, CCD, PPD, TEL, POP, POS, WEB
-        ],
-        'disc_data': 2,
-        'id_number': 15,
-        'ind_id': 22,
-        'num_add_recs': 4,
-        'recv_cmpy_name': 16,
-        'reserved': 2,
-        'terminal_city': 4,
-        'terminal_state': 2,
-        'card_tr_typ_code_pos': 2,
-        'card_tr_typ_code_shr': 2,
-        'card_exp_date': 4,
-        'doc_ref_num': 11,
-        'ind_card_acct_num': 22,
-        'pmt_type_code': 2,
-        'add_rec_ind': 1,
-        'trace_num': 15,
+        'transaction_code'      : 2,
+        'recv_dfi_id'           : [8, 9],
+        'check_digit'           : 1,
+        'dfi_acnt_num'          : 17,
+        'amount'                : 10,
+        'chk_serial_num'        : [9, #POP
+                                    15,], #ARC, BOC
+        'ind_name'              : [15, #CIE, MTE
+                                    22,], #ARC, BOC, CCD, PPD, TEL, POP, POS, WEB
+        'disc_data'             : 2,
+        'id_number'             : 15,
+        'ind_id'                : 22,
+        'num_add_recs'          : 4,
+        'recv_cmpy_name'        : 16,
+        'reserved'              : 2,
+        'terminal_city'         : 4,
+        'terminal_state'        : 2,
+        'card_tr_typ_code_pos'  : 2,
+        'card_tr_typ_code_shr'  : 2,
+        'card_exp_date'         : 4,
+        'doc_ref_num'           : 11,
+        'ind_card_acct_num'     : 22,
+        'pmt_type_code'         : 2,
+        'add_rec_ind'           : 1,
+        'trace_num'             : 15,
     }
 
     def __init__(self, std_ent_cls_code, transaction_code='', recv_dfi_id='',
@@ -504,7 +500,10 @@ class EntryDetail(Ach):
                     )
 
             elif key in self.numeric_fields:
-                self.__setattr__(key, self.make_zero(self.field_lengths[key]))
+                if key == 'recv_dfi_id':
+                    self.__setattr__(key, self.make_zero( self.field_lengths[key][0] ) )
+                else:
+                    self.__setattr__(key, self.make_zero( self.field_lengths[key] ) )
 
             elif key in self.alpha_numeric_fields:
                 self.__setattr__(
@@ -546,9 +545,15 @@ class EntryDetail(Ach):
                 )
 
         elif name in self.numeric_fields:
-            value = self.validate_numeric_field(
-                value, self.field_lengths[name]
-            )
+            if name == 'recv_dfi_id':
+                try:
+                    # try 8 digits first
+                    value = self.validate_numeric_field(value, self.field_lengths[name][0])
+                except AchException:
+                    # now try to validate it 9 instead
+                    value = self.validate_numeric_field(value, self.field_lengths[name][1])
+            else:
+                value = self.validate_numeric_field( value, self.field_lengths[name] )
 
         elif name == 'std_ent_cls_code' and \
                 value in self.std_ent_cls_code_list:
@@ -567,9 +572,12 @@ class EntryDetail(Ach):
 
         ret_string = self.record_type_code +\
             self.transaction_code +\
-            self.recv_dfi_id +\
-            self.check_digit +\
-            self.dfi_acnt_num +\
+            self.recv_dfi_id
+
+        if len(self.recv_dfi_id) < 9:
+            ret_string += self.check_digit
+
+        ret_string += self.dfi_acnt_num +\
             self.amount
 
         if self.std_ent_cls_code in ['ARC', 'BOC']:
