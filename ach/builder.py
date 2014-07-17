@@ -36,18 +36,21 @@ class AchFile(object):
 
         self.batches = list()
 
-    def add_batch(self, std_ent_cls_code, batch_entries=list(),
-                  credits=True, debits=False):
+    def add_batch(self, std_ent_cls_code, batch_entries=None,
+                  credits=True, debits=False, eff_ent_date=None):
         """
         Use this to add batches to the file. For valid std_ent_cls_codes see:
         http://en.wikipedia.org/wiki/Automated_Clearing_House#SEC_codes
         """
+        if batch_entries is None:
+            batch_entries = list()
 
         entry_desc = self.get_entry_desc(std_ent_cls_code)
 
         batch_count = len(self.batches) + 1
 
-        datestamp = datetime.today().strftime('%y%m%d')  # YYMMDD
+        if not eff_ent_date:
+            eff_ent_date = datetime.today()
 
         if credits and debits:
             serv_cls_code = '200'
@@ -63,7 +66,7 @@ class AchFile(object):
             std_ent_cls_code=std_ent_cls_code,
             entry_desc=entry_desc,
             desc_date='',
-            eff_ent_date=datestamp,
+            eff_ent_date=eff_ent_date.strftime('%y%m%d'),  # YYMMDD
             orig_stat_code='1',
             orig_dfi_id=self.settings['immediate_dest'][:8],
             company_name=self.settings['immediate_org_name']
@@ -253,7 +256,7 @@ class FileBatch(object):
         entry_hash = 0
 
         for entry in entries:
-            entry_hash += int(entry.entry_detail.recv_dfi_id)
+            entry_hash += int(entry.entry_detail.recv_dfi_id[:8])
 
         if len(str(entry_hash)) > 10:
             pos = len(str(entry_hash)) - 10
