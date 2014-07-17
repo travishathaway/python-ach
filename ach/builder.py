@@ -1,5 +1,5 @@
 import math
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from .data_types import (
     Header, FileControl, BatchHeader,
@@ -46,8 +46,9 @@ class AchFile(object):
         entry_desc = self.get_entry_desc(std_ent_cls_code)
 
         batch_count = len(self.batches) + 1
-
-        datestamp = datetime.today().strftime('%y%m%d')  # YYMMDD
+        # The effective date must be at least one business day later than the file creation date
+        # Fount in this example https://github.com/jm81/ach
+        datestamp = (datetime.today() + timedelta(days=1)).strftime('%y%m%d')  # YYMMDD
 
         if credits and debits:
             serv_cls_code = '200'
@@ -253,7 +254,7 @@ class FileBatch(object):
         entry_hash = 0
 
         for entry in entries:
-            entry_hash += int(entry.entry_detail.recv_dfi_id)
+            entry_hash += int(entry.entry_detail.recv_dfi_id[:8])
 
         if len(str(entry_hash)) > 10:
             pos = len(str(entry_hash)) - 10
