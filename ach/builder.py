@@ -1,5 +1,5 @@
 import math
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from .data_types import (
     Header, FileControl, BatchHeader,
@@ -50,7 +50,7 @@ class AchFile(object):
         batch_count = len(self.batches) + 1
 
         if not eff_ent_date:
-            eff_ent_date = datetime.today()
+            eff_ent_date = datetime.today() + timedelta(days=1)
 
         if credits and debits:
             serv_cls_code = '200'
