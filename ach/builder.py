@@ -169,15 +169,14 @@ class AchFile(object):
 
         return credit_amount
 
-    def get_nines(self, rows):
+    def get_nines(self, rows, line_ending):
         nines = ''
 
         for i in range(rows):
-            for l in range(94):
-                nines += '9'
+            nines += '9'*94
             if i == rows - 1:
                 continue
-            nines += "\n"
+            nines += line_ending
 
         return nines
 
@@ -192,23 +191,26 @@ class AchFile(object):
 
         return entry_desc
 
-    def render_to_string(self):
+    def render_to_string(self, force_crlf=False):
         """
         Renders a nacha file as a string
         """
+        line_ending = "\n"
+        if force_crlf:
+            line_ending = "\r\n"
 
-        ret_string = self.header.get_row() + "\n"
+        ret_string = self.header.get_row() + line_ending
 
         for batch in self.batches:
-            ret_string += batch.render_to_string()
+            ret_string += batch.render_to_string(force_crlf=force_crlf)
 
-        ret_string += self.control.get_row() + "\n"
+        ret_string += self.control.get_row() + line_ending
 
         lines = self.get_lines(self.batches)
 
         nine_lines = int(round(10 * (math.ceil(lines / 10.0) - (lines / 10.0))))
 
-        ret_string += self.get_nines(nine_lines)
+        ret_string += self.get_nines(nine_lines, line_ending)
 
         return ret_string
 
@@ -286,17 +288,20 @@ class FileBatch(object):
 
         return credit_amount
 
-    def render_to_string(self):
+    def render_to_string(self, force_crlf=False):
         """
         Renders a nacha file batch to string
         """
+        line_ending = "\n"
+        if force_crlf:
+            line_ending = "\r\n"
 
-        ret_string = self.batch_header.get_row() + "\n"
+        ret_string = self.batch_header.get_row() + line_ending
 
         for entry in self.entries:
-            ret_string += entry.render_to_string()
+            ret_string += entry.render_to_string(force_crlf=force_crlf)
 
-        ret_string += self.batch_control.get_row() + "\n"
+        ret_string += self.batch_control.get_row() + line_ending
 
         return ret_string
 
@@ -330,14 +335,17 @@ class FileEntry(object):
         if self.addenda_record:
             self.entry_detail.add_rec_ind = 1
 
-    def render_to_string(self):
+    def render_to_string(self, force_crlf=False):
         """
         Renders a nacha batch entry and addenda to string
         """
+        line_ending = "\n"
+        if force_crlf:
+            line_ending = "\r\n"
 
-        ret_string = self.entry_detail.get_row() + "\n"
+        ret_string = self.entry_detail.get_row() + line_ending
 
         for addenda in self.addenda_record:
-            ret_string += addenda.get_row() + "\n"
+            ret_string += addenda.get_row() + line_ending
 
         return ret_string
