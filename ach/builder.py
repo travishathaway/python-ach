@@ -14,14 +14,13 @@ class AchFile(object):
 
     """
 
-    def __init__(self, file_id_mod, settings, use_crlf=False):
+    def __init__(self, file_id_mod, settings):
         """
         The file_id_mod should be 'A' for the first of the day, 'B'
         for the second and so on.
         """
 
         self.settings = settings
-        self.use_crlf = use_crlf
 
         try:
             self.header = Header(
@@ -97,8 +96,7 @@ class AchFile(object):
             entries.append((entry, record.get('addenda', [])))
             entry_counter += 1
 
-        self.batches.append(FileBatch(
-            batch_header, entries, use_crlf=self.use_crlf))
+        self.batches.append(FileBatch(batch_header, entries))
         self.set_control()
 
     def set_control(self):
@@ -193,25 +191,24 @@ class AchFile(object):
 
         return entry_desc
 
-    def render_to_string(self):
+    def render_to_string(self, force_crlf=False):
         """
         Renders a nacha file as a string
         """
         line_ending = "\n"
-        if self.use_crlf:
+        if force_crlf:
             line_ending = "\r\n"
 
         ret_string = self.header.get_row() + line_ending
 
         for batch in self.batches:
-            ret_string += batch.render_to_string()
+            ret_string += batch.render_to_string(force_crlf=force_crlf)
 
         ret_string += self.control.get_row() + line_ending
 
         lines = self.get_lines(self.batches)
 
-        nine_lines = int(
-            round(10 * (math.ceil(lines / 10.0) - (lines / 10.0))))
+        nine_lines = int(round(10 * (math.ceil(lines / 10.0) - (lines / 10.0))))
 
         ret_string += self.get_nines(nine_lines, line_ending)
 
@@ -227,7 +224,7 @@ class FileBatch(object):
     BatchControl (1)
     """
 
-    def __init__(self, batch_header, entries, use_crlf=False):
+    def __init__(self, batch_header, entries):
         """
         args: batch_header (BatchHeader), entries (List[FileEntry])
         """
@@ -236,15 +233,14 @@ class FileBatch(object):
 
         self.batch_header = batch_header
         self.entries = []
-        self.use_crlf = use_crlf
 
         for entry, addenda in entries:
             entadd_count += 1
             entadd_count += len(addenda)
-            self.entries.append(FileEntry(
-                entry, addenda, use_crlf=self.use_crlf))
+            self.entries.append(FileEntry(entry, addenda))
 
         #set up batch_control
+
         batch_control = BatchControl(self.batch_header.serv_cls_code)
 
         batch_control.entadd_count = entadd_count
@@ -292,18 +288,18 @@ class FileBatch(object):
 
         return credit_amount
 
-    def render_to_string(self):
+    def render_to_string(self, force_crlf=False):
         """
         Renders a nacha file batch to string
         """
         line_ending = "\n"
-        if self.use_crlf:
+        if force_crlf:
             line_ending = "\r\n"
 
         ret_string = self.batch_header.get_row() + line_ending
 
         for entry in self.entries:
-            ret_string += entry.render_to_string()
+            ret_string += entry.render_to_string(force_crlf=force_crlf)
 
         ret_string += self.batch_control.get_row() + line_ending
 
@@ -318,14 +314,13 @@ class FileEntry(object):
     AddendaRecord (n) <-- for some types of entries there can be more than one
     """
 
-    def __init__(self, entry_detail, addenda_record=[], use_crlf=False):
+    def __init__(self, entry_detail, addenda_record=[]):
         """
         args: entry_detail( EntryDetail), addenda_record (List[AddendaRecord])
         """
 
         self.entry_detail = entry_detail
         self.addenda_record = []
-        self.use_crlf = use_crlf
 
         for index, addenda in enumerate(addenda_record):
             self.addenda_record.append(
@@ -340,12 +335,12 @@ class FileEntry(object):
         if self.addenda_record:
             self.entry_detail.add_rec_ind = 1
 
-    def render_to_string(self):
+    def render_to_string(self, force_crlf=False):
         """
         Renders a nacha batch entry and addenda to string
         """
         line_ending = "\n"
-        if self.use_crlf:
+        if force_crlf:
             line_ending = "\r\n"
 
         ret_string = self.entry_detail.get_row() + line_ending
