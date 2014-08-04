@@ -34,23 +34,18 @@ class TestDataTypes(object):
         We make sure that properties that are not define in "numeric_fields"
         or "alpha_numeric_fields" cannot be defined as object properties.
         '''
-        with nt.assert_raises(dt.AchError):
-            self.header.test_property = 'testtesttest'
-
-        with nt.assert_raises(dt.AchError):
-            self.file_control.test_property = 'testtesttest'
-
-        with nt.assert_raises(dt.AchError):
-            self.batch_header.test_property = 'testtesttest'
-
-        with nt.assert_raises(dt.AchError):
-            self.batch_control.test_property = 'testtesttest'
-
-        with nt.assert_raises(dt.AchError):
-            self.entry_detail.test_property = 'testtesttest'
-
-        with nt.assert_raises(dt.AchError):
-            self.addenda_record.test_property = 'testtesttest'
+        nt.assert_raises(dt.AchError, setattr, self.header,
+                         'test_property', 'testtesttest')
+        nt.assert_raises(dt.AchError, setattr, self.file_control,
+                         'test_property', 'testtesttest')
+        nt.assert_raises(dt.AchError, setattr, self.batch_header,
+                         'test_property', 'testtesttest')
+        nt.assert_raises(dt.AchError, setattr, self.batch_control,
+                         'test_property', 'testtesttest')
+        nt.assert_raises(dt.AchError, setattr, self.entry_detail,
+                         'test_property', 'testtesttest')
+        nt.assert_raises(dt.AchError, setattr, self.addenda_record,
+                         'test_property', 'testtesttest')
 
     def test_check_digit(self):
         '''
