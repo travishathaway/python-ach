@@ -51,3 +51,16 @@ class TestDataTypes(object):
 
         with nt.assert_raises(dt.AchError):
             self.addenda_record.test_property = 'testtesttest'
+
+    def test_check_digit(self):
+        '''
+        Ensure our check digit is being calculate appropriately on
+        entry detail records
+        '''
+        self.entry_detail.recv_dfi_id = '11100002'
+        self.entry_detail.calc_check_digit()
+
+        nt.assert_equal(
+            self.entry_detail.recv_dfi_id + self.entry_detail.check_digit,
+            '111000025'
+        )

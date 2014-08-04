@@ -696,7 +696,7 @@ class EntryDetail(Ach):
 
         tmp_num = 0
 
-        for num, mult in map(None, list(self.recv_dfi_id), multipliers):
+        for num, mult in zip(list(self.recv_dfi_id), multipliers):
             tmp_num += int(num) * mult
 
         nearest_10 = math.ceil(tmp_num / 10.0)
