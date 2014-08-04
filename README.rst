@@ -1,6 +1,9 @@
 python-ach
 ==========
 
+.. image:: https://travis-ci.org/travishathaway/python-ach.svg?branch=master
+    :target: https://travis-ci.org/travishathaway/python-ach
+
 ACH file generator module for python. So far, this has been tested with
 “PPD” and “CCD” batches with addenda records.
 
