@@ -1,5 +1,6 @@
 import math
 import re
+import string
 from datetime import datetime
 
 """
@@ -8,7 +9,7 @@ in a nacha file
 """
 
 
-class AchException(Exception):
+class AchError(Exception):
     pass
 
 
@@ -70,7 +71,7 @@ class Ach(object):
             else:
                 field = match.group(1)
         else:
-            raise AchException("field does not match alpha numeric criteria")
+            raise AchError("field does not match alpha numeric criteria")
 
         return field.upper()
 
@@ -87,33 +88,9 @@ class Ach(object):
             if len(field) < length:
                 field = self.make_zero(length - len(field)) + field
             elif len(field) > length:
-                raise AchException("field can only be %s digits long" % length)
+                raise AchError("field can only be %s digits long" % length)
         else:
-            raise AchException("field needs to be numeric characters only")
-
-        return field
-
-    def validate_upper_num_field(self, field, length):
-        """
-        Validates upper case and numeric field
-        field (int|str)
-        length (int)
-        """
-
-        field = str(field)
-
-        if field.isdigit():
-            if len(field) > length:
-                raise AchException("field exceeds length: %s" % length)
-            elif len(field) < length:
-                field = self.make_zero(length) + field
-        elif field.isalpha():
-            if len(field) > length:
-                raise AchException("field exceeds length: %s" % length)
-            elif len(field) < length:
-                field = field + self.make_space(length)
-        else:
-            raise AchException("field is neither alpha nor numeric")
+            raise AchError("field needs to be numeric characters only")
 
         return field
 
@@ -123,7 +100,7 @@ class Ach(object):
         """
 
         if field not in ['1', '0']:
-            raise AchException("filed not '1' or '0'")
+            raise AchError("filed not '1' or '0'")
         return field
 
 
@@ -138,8 +115,24 @@ class Header(Ach):
     blk_factor = '10'
     format_code = '1'
 
-    def __init__(self, immediate_dest, immediate_org, file_id_mod,
-                 im_dest_name, im_orgn_name, reference_code=''):
+    alpha_numeric_fields = [
+        'immediate_dest', 'immediate_org', 'file_id_mod', 'im_dest_name',
+        'im_orgn_name', 'reference_code', 'file_crt_date', 'file_crt_time'
+    ]
+
+    field_lengths = {
+        'immediate_dest': 10,
+        'immediate_org': 10,
+        'file_id_mod': 1,
+        'im_dest_name': 23,
+        'im_orgn_name': 23,
+        'reference_code': 8,
+        'file_crt_date': 6,
+        'file_crt_time': 4,
+    }
+
+    def __init__(self, immediate_dest='', immediate_org='', file_id_mod='A',
+                 im_dest_name='', im_orgn_name='', reference_code=''):
         """
         Initializes all values needed for
         our header row
@@ -151,7 +144,7 @@ class Header(Ach):
         self.immediate_org = self.make_right_justified(immediate_org, 10)
         self.file_crt_date = date.strftime('%y%m%d')
         self.file_crt_time = date.strftime('%H%M')
-        self.file_id_mod = self.validate_upper_num_field(file_id_mod, 1)
+        self.file_id_mod = self.validate_file_id_mod(file_id_mod)
         self.im_dest_name = self.validate_alpha_numeric_field(im_dest_name, 23)
         self.im_orgn_name = self.validate_alpha_numeric_field(im_orgn_name, 23)
 
@@ -160,6 +153,30 @@ class Header(Ach):
                 reference_code, 8)
         else:
             self.reference_code = self.make_space(8)
+
+    def __setattr__(self, name, value):
+        if name in self.alpha_numeric_fields:
+            value = self.validate_alpha_numeric_field(
+                value, self.field_lengths[name]
+            )
+        elif name == 'file_id_mod':
+            value = self.validate_file_id_mod(value)
+        else:
+            raise AchError(
+                '%s not in alpha numeric field list' % name
+            )
+
+        super(Header, self).__setattr__(name, value)
+
+    def validate_file_id_mod(self, file_id_mod):
+        '''
+        Validates the file ID modifier. It has to be ascii_uppercase
+        and one character in length
+        '''
+        if file_id_mod not in string.ascii_uppercase and len(file_id_mod) != 1:
+            raise AchError("Invalid file_id_mod")
+
+        return file_id_mod
 
     def get_row(self):
         """
@@ -196,6 +213,23 @@ class FileControl(Ach):
 
     record_type_code = '9'
 
+    numeric_fields = [
+        'batch_count', 'block_count', 'entadd_count', 'entry_hash',
+        'debit_amount', 'credit_amount'
+    ]
+
+    alpha_numeric_fields = ['reserved', ]
+
+    field_lengths = {
+        'batch_count': 6,
+        'block_count': 6,
+        'entadd_count': 8,
+        'entry_hash': 10,
+        'debit_amount': 12,
+        'credit_amount': 12,
+        'reserved': 39,
+    }
+
     def __init__(self, batch_count, block_count,
                  entadd_count, entry_hash, debit_amount,
                  credit_amount):
@@ -210,6 +244,22 @@ class FileControl(Ach):
         self.debit_amount = self.validate_numeric_field(debit_amount, 12)
         self.credit_amount = self.validate_numeric_field(credit_amount, 12)
         self.reserved = self.make_space(39)
+
+    def __setattr__(self, name, value):
+        if name in self.numeric_fields:
+            value = self.validate_numeric_field(
+                value, self.field_lengths[name]
+            )
+        elif name in self.alpha_numeric_fields:
+            value = self.validate_alpha_numeric_field(
+                value, self.field_lengths[name]
+            )
+        else:
+            raise AchError(
+                '%s not in numeric field list' % name
+            )
+
+        super(FileControl, self).__setattr__(name, value)
 
     def get_row(self):
 
@@ -290,7 +340,7 @@ class BatchHeader(Ach):
         if name in self.numeric_fields:
             if name == 'serv_cls_code' \
                     and str(value) not in self.serv_cls_code_list:
-                raise TypeError("%s not in serv_cls_code_list" % value)
+                raise AchError("%s not in serv_cls_code_list" % value)
 
             value = self.validate_numeric_field(
                 value, self.field_lengths[name]
@@ -299,15 +349,15 @@ class BatchHeader(Ach):
         elif name in self.alpha_numeric_fields:
             if name == 'std_ent_cls_code' \
                     and str(value) not in self.std_ent_cls_code_list:
-                raise TypeError("%s not in std_ent_cls_code_list" % value)
+                raise AchError("%s not in std_ent_cls_code_list" % value)
 
             value = self.validate_alpha_numeric_field(
                 value, self.field_lengths[name]
             )
 
         else:
-            raise TypeError(
-                '%s not in numeric or alpha numer fields list' % name
+            raise AchError(
+                '%s not in numeric or alpha numeric fields list' % name
             )
 
         super(BatchHeader, self).__setattr__(name, value)
@@ -355,7 +405,7 @@ class BatchControl(Ach):
         'batch_id': 7,
     }
 
-    def __init__(self, serv_cls_code, entadd_count='', entry_hash='',
+    def __init__(self, serv_cls_code='220', entadd_count='', entry_hash='',
                  debit_amount='', credit_amount='', company_id='',
                  orig_dfi_id='', batch_id='', mesg_auth_code=''):
         """
@@ -391,7 +441,7 @@ class BatchControl(Ach):
                 value, self.field_lengths[name]
             )
         else:
-            raise TypeError(
+            raise AchError(
                 "%s not in numeric_fields or alpha_numeric_fields" % name
             )
 
@@ -464,7 +514,7 @@ class EntryDetail(Ach):
         'trace_num'             : 15,
     }
 
-    def __init__(self, std_ent_cls_code, transaction_code='', recv_dfi_id='',
+    def __init__(self, std_ent_cls_code='PPD', transaction_code='', recv_dfi_id='',
                  check_digit='', amount='', num_add_recs='', card_exp_date='',
                  doc_ref_num='', ind_card_acct_num='', card_tr_typ_code_shr='',
                  card_tr_typ_code_pos='', trace_num='', dfi_acnt_num='',
@@ -498,9 +548,9 @@ class EntryDetail(Ach):
 
             elif key in self.numeric_fields:
                 if key == 'recv_dfi_id':
-                    self.__setattr__(key, self.make_zero( self.field_lengths[key][0] ) )
+                    self.__setattr__(key, self.make_zero(self.field_lengths[key][0]))
                 else:
-                    self.__setattr__(key, self.make_zero( self.field_lengths[key] ) )
+                    self.__setattr__(key, self.make_zero(self.field_lengths[key]))
 
             elif key in self.alpha_numeric_fields:
                 self.__setattr__(
@@ -546,7 +596,7 @@ class EntryDetail(Ach):
                 try:
                     # try 8 digits first
                     value = self.validate_numeric_field(value, self.field_lengths[name][0])
-                except AchException:
+                except AchError:
                     # now try to validate it 9 instead
                     value = self.validate_numeric_field(value, self.field_lengths[name][1])
             else:
@@ -557,7 +607,7 @@ class EntryDetail(Ach):
             pass
 
         else:
-            raise TypeError(
+            raise AchError(
                 "%s not in numeric_fields or alpha_numeric_fields" % name
             )
 
@@ -690,7 +740,7 @@ class AddendaRecord(Ach):
         'add_seq_num': 4,
     }
 
-    def __init__(self, std_ent_cls_code, trans_desc='', net_id_code='',
+    def __init__(self, std_ent_cls_code='PPD', trans_desc='', net_id_code='',
                  term_id_code='', ref_info_1='', ref_info_2='',
                  trans_serial_code='', trans_date='', trans_time='',
                  terminal_loc='', terminal_city='', terminal_state='',
@@ -731,7 +781,7 @@ class AddendaRecord(Ach):
         elif name == 'std_ent_cls_code':
             pass
         else:
-            raise TypeError(
+            raise AchError(
                 "%s not in numeric or alpha numeric fields" % value
             )
 
