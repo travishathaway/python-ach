@@ -328,7 +328,7 @@ class FileEntry(object):
                 AddendaRecord(
                     self.entry_detail.std_ent_cls_code,
                     pmt_rel_info=addenda.get('payment_related_info').upper(),
-                    add_seq_num=index,
+                    add_seq_num=index + 1,
                     ent_det_seq_num=entry_detail.trace_num[-7:]
                 )
             )
