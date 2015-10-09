@@ -90,7 +90,12 @@ class AchFile(object):
 
             entry.dfi_acnt_num = record['account_number']
             entry.amount = int(round(float(record['amount']) * 100))
-            entry.ind_name = record['name'].upper()[:22]
+
+            if std_ent_cls_code == 'CTX':
+                entry.recv_cmpy_name = record['company_name'].upper()[:16]
+            else:
+                entry.ind_name = record['name'].upper()[:22]
+
             entry.trace_num = self.settings['immediate_dest'][:8] \
                 + entry.validate_numeric_field(entry_counter, 7)
 
@@ -335,6 +340,7 @@ class FileEntry(object):
 
         if self.addenda_record:
             self.entry_detail.add_rec_ind = 1
+            self.entry_detail.num_add_recs = len(self.addenda_record)
 
     def render_to_string(self, force_crlf=False):
         """

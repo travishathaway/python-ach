@@ -62,7 +62,7 @@ class Ach(object):
         """
         str_length = str(length)
 
-        match = re.match(r'([\w,\s,*,\\]{1,' + str_length + '})', field)
+        match = re.match(r'([\w,\s,*,\\,.,~]{1,' + str_length + '})', field)
 
         if match:
             if len(match.group(1)) < length:
