@@ -73,12 +73,15 @@ class AchFile(object):
             company_name=self.settings['immediate_org_name']
         )
 
-        entries = list()
+        entries = []
         entry_counter = 1
 
         for record in batch_entries:
 
-            entry = EntryDetail(std_ent_cls_code)
+            entry = EntryDetail(
+                std_ent_cls_code=std_ent_cls_code,
+                id_number=record.get('id_number', ''),
+            )
 
             entry.transaction_code = record.get('type')
             entry.recv_dfi_id = record.get('routing_number')

@@ -4,7 +4,7 @@ setup(
     name='ach',
     author='Travis Hathaway',
     author_email='travis.j.hathaway@gmail.com',
-    version='0.2',
+    version='0.2.1',
     packages=[
         'ach',
     ],
