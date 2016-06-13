@@ -41,6 +41,7 @@ class TestLineEndings(object):
                 'account_number' : '123123123',
                 'amount'         : '12.13',
                 'name'           : 'Rachel Welch',
+                'id_number'      : '3333',
             },
         ]
 
