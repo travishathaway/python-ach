@@ -53,6 +53,8 @@ class AchFile(object):
         if not eff_ent_date:
             eff_ent_date = datetime.today() + timedelta(days=1)
 
+        desc_date = self.get_desc_date(eff_ent_date)
+
         if credits and debits:
             serv_cls_code = '200'
         elif credits:
@@ -66,7 +68,7 @@ class AchFile(object):
             company_id=company_id or self.settings['company_id'],
             std_ent_cls_code=std_ent_cls_code,
             entry_desc=entry_desc,
-            desc_date='',
+            desc_date=desc_date,
             eff_ent_date=eff_ent_date.strftime('%y%m%d'),  # YYMMDD
             orig_stat_code='1',
             orig_dfi_id=self.settings['immediate_dest'][:8],
@@ -191,6 +193,9 @@ class AchFile(object):
             entry_desc = 'OTHER'
 
         return entry_desc
+
+    def get_desc_date(self, eff_ent_date):
+        return ''
 
     def render_to_string(self, force_crlf=False):
         """
