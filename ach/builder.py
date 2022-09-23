@@ -38,7 +38,7 @@ class AchFile(object):
 
     def add_batch(self, std_ent_cls_code, batch_entries=None,
                   credits=True, debits=False, eff_ent_date=None,
-                  company_id=None):
+                  company_id=None, entry_desc=None):
         """
         Use this to add batches to the file. For valid std_ent_cls_codes see:
         http://en.wikipedia.org/wiki/Automated_Clearing_House#SEC_codes
@@ -46,7 +46,7 @@ class AchFile(object):
         if batch_entries is None:
             batch_entries = list()
 
-        entry_desc = self.get_entry_desc(std_ent_cls_code)
+        entry_desc = self.get_entry_desc(std_ent_cls_code, entry_desc)
 
         batch_count = len(self.batches) + 1
 
@@ -181,14 +181,15 @@ class AchFile(object):
 
         return nines
 
-    def get_entry_desc(self, std_ent_cls_code):
+    def get_entry_desc(self, std_ent_cls_code, entry_desc):
 
-        if std_ent_cls_code == 'PPD':
-            entry_desc = 'PAYROLL'
-        elif std_ent_cls_code == 'CCD':
-            entry_desc = 'DUES'
-        else:
-            entry_desc = 'OTHER'
+        if not entry_desc:
+            if std_ent_cls_code == 'PPD':
+                entry_desc = 'PAYROLL'
+            elif std_ent_cls_code == 'CCD':
+                entry_desc = 'DUES'
+            else:
+                entry_desc = 'OTHER'
 
         return entry_desc
 
