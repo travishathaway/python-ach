@@ -11,5 +11,5 @@ setup(
     url='https://github.com/travishathaway/python-ach',
     license='MIT License',
     description='Library to create and parse ACH files (NACHA)',
-    long_description=open('README.rst').read(),
+    long_description=open('README.rst', encoding='utf-8').read(),
 )
