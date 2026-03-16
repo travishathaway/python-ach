@@ -1,4 +1,7 @@
 from distutils.core import setup
+import codecs
+
+readme = codecs.open('README.rst', encoding='utf-8').read()
 
 setup(
     name='ach',
@@ -11,5 +14,5 @@ setup(
     url='https://github.com/travishathaway/python-ach',
     license='MIT License',
     description='Library to create and parse ACH files (NACHA)',
-    long_description=open('README.rst').read(),
+    long_description=readme,
 )
