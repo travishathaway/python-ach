@@ -93,6 +93,7 @@ class AchFile(object):
             entry.ind_name = record['name'].upper()[:22]
             entry.trace_num = self.settings['immediate_dest'][:8] \
                 + entry.validate_numeric_field(entry_counter, 7)
+            entry.id_number = record.get('id_number', '')[:15]
 
             entries.append((entry, record.get('addenda', [])))
             entry_counter += 1
